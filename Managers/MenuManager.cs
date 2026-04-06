@@ -141,7 +141,16 @@ namespace CS2Tags_VipTag
 
             foreach (var color in _plugin.Colors)
             {
-                string hex = PluginUtilities.FromNameToHex(color) ?? "#FFFFFF";
+                var hex = color switch
+                {
+                    "TeamColor" => player.Team switch
+                    {
+                        CsTeam.CounterTerrorist => PluginUtilities.FromNameToHex("CTBlue"),
+                        CsTeam.Terrorist => PluginUtilities.FromNameToHex("Orange"),
+                        _ => null,
+                    },
+                    _ => PluginUtilities.FromNameToHex(color),
+                } ?? "#FFFFFF";
 
                 menu.AddItem(
                     $"<font color='{hex}'><b>{color}</b></font>",
