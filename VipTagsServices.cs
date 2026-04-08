@@ -13,6 +13,6 @@ public sealed class VipTagsServices : IPluginServiceCollection<VipTagsPlugin>
         .AddTransient<CommandManager>()
         .AddTransient<MenuManager>()
         .AddTransient<TagsManager>()
-        .AddSingleton<DatabaseManager>()
+        .AddTransient<DatabaseManager>()
         .AddSingleton<PlayerModelCache>();
 }

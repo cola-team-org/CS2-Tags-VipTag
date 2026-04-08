@@ -51,8 +51,6 @@ public sealed class CommandManager(
             return;
         }
 
-
-
         var newtag = $"{arg} ";
         try
         {
