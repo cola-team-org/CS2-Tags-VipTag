@@ -1,9 +1,8 @@
 ﻿using CounterStrikeSharp.API.Core;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
 using TagsApi;
-using CS2Tags_VipTag.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CS2Tags_VipTag;
 
@@ -25,35 +24,35 @@ public class TagConfig : BasePluginConfig
 
 }
 
-public partial class CS2Tags_VipTag : BasePlugin, IPluginConfig<TagConfig>
+public class CS2Tags_VipTag(IServiceProvider serviceProvider) : BasePlugin, IPluginConfig<TagConfig>
 {
     public override string ModuleName => "CS2Tags_VipTag";
     public override string ModuleVersion => "0.4.1";
     public override string ModuleAuthor => "Letaryat";
     public override string ModuleDescription => "Tag change for vip players";
-    public ITagApi _tagApi = null!;
+    internal ITagApi _tagApi = null!;
     public required TagConfig Config { get; set; }
-    public readonly ConcurrentDictionary<ulong, PlayerModel?> Players = new();
 
-    public DatabaseManager? DatabaseManager { get; private set; }
-    public EventManager? EventManager { get; private set; }
-    public MenuManager? MenuManager { get; private set; }
-    public CommandManager? CmdManager { get; private set; }
-    public TagsManager? TagsManager { get; private set; }
-    public List<string> Colors =
+    internal DatabaseManager? DatabaseManager { get; private set; }
+    private EventManager? EventManager { get; set; }
+    internal MenuManager? MenuManager { get; private set; }
+    private CommandManager? CmdManager { get; set; }
+    internal TagsManager? TagsManager { get; private set; }
+    internal List<string> Colors =
         [
         "TeamColor", "White", "DarkRed", "Green", "LightYellow", "LightBlue", "Olive", "Lime", "Red", "LightPurple", "Purple", "Grey", "Yellow", "Gold", "Silver", "Blue","DarkBlue", "BlueGrey", "Magenta", "LightRed", "Orange"
         ];
     public override void Load(bool hotReload)
     {
+        var playerManager = serviceProvider.GetRequiredService<PlayerModelCache>();
+        
+        DatabaseManager = new DatabaseManager(this, playerManager);
+        EventManager = new EventManager(this, playerManager);
+        MenuManager = new MenuManager(this, playerManager);
+        CmdManager = new CommandManager(this, playerManager);
+        TagsManager = new TagsManager(this, playerManager);
 
-        DatabaseManager = new DatabaseManager(this);
-        EventManager = new EventManager(this);
-        MenuManager = new MenuManager(this);
-        CmdManager = new CommandManager(this);
-        TagsManager = new TagsManager(this);
-
-        DatabaseManager.InitializeConnection();
+        _ = DatabaseManager.InitializeConnection(); // TODO: make this wait properly
         EventManager.InitializeEvents();
         CmdManager.InitializeCommands();
 

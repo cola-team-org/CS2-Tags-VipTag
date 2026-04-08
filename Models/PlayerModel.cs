@@ -1,6 +1,6 @@
 namespace CS2Tags_VipTag.Models
 {
-    public class PlayerModel
+    public class PlayerModel // TODO: why so nullable?
     {
         public required ulong steamid { get; set; }
         public required string tag { get; set; }
