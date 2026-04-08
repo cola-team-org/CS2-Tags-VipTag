@@ -1,14 +1,23 @@
-namespace CS2Tags_VipTag.Models
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace VipTags.Models;
+
+public class PlayerModel // TODO: why so nullable?
 {
-    public class PlayerModel // TODO: why so nullable?
-    {
-        public required ulong steamid { get; set; }
-        public required string tag { get; set; }
-        public string? tagcolor { get; set; }
-        public string? namecolor { get; set; }
-        public string? chatcolor { get; set; }
-        public bool? visibility { get; set; }
-        public bool? chatvisibility { get; set; }
-        public bool? scorevisibility { get; set; }
-    }
+    [Column("steamid")]
+    public required ulong SteamId { get; set; }
+    [Column("tag")]
+    public required string Tag { get; set; }
+    [Column("tagcolor")]
+    public string? TagColor { get; set; }
+    [Column("namecolor")]
+    public string? NameColor { get; set; }
+    [Column("chatcolor")]
+    public string? ChatColor { get; set; }
+    [Column("visibility")]
+    public bool? Visibility { get; set; }
+    [Column("chatvisibility")]
+    public bool? ChatVisibility { get; set; }
+    [Column("scorevisibility")]
+    public bool? ScoreVisibility { get; set; }
 }

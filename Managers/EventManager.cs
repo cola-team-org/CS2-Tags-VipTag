@@ -1,14 +1,15 @@
-
-using CounterStrikeSharp.API.Core;
-using Microsoft.Extensions.Logging;
-using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API;
-using CS2Tags_VipTag.Models;
+using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Modules.Admin;
 
-namespace CS2Tags_VipTag;
+using Microsoft.Extensions.Logging;
+
+using VipTags.Models;
+
+namespace VipTags.Managers;
 
 public class EventManager(
-    CS2Tags_VipTag plugin,
+    VipTagsPlugin plugin,
     ILogger<EventManager> logger,
     DatabaseManager databaseManager,
     TagsManager tagsManager,
@@ -53,7 +54,7 @@ public class EventManager(
             var player = @event.Userid;
             if (player == null || player.IsBot || player.IsHLTV || player.AuthorizedSteamID == null) return HookResult.Continue;
             var steamid64 = player.GetAuthorizedSteamId();
-            
+
             if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipBaseFlag)) return HookResult.Continue;
             Task.Run(async () =>
             {
@@ -67,7 +68,7 @@ public class EventManager(
                     {
                         var model = playerModelCache.Get(steamid64);
 
-                        if (model is null or { visibility: false }) return;
+                        if (model is null or { Visibility: false }) return;
 
                         tagsManager.SetEverythingTagRelated(player, 0);
                     });
@@ -75,13 +76,13 @@ public class EventManager(
                 }
                 catch (Exception ex)
                 {
-                    logger.LogInformation($"{ex}");
+                    logger.LogError(ex, "Failed to fetch tags on connect");
                 }
             });
         }
         catch (Exception ex)
         {
-            logger.LogInformation($"OnPlayerConnectFull - {ex}");
+            logger.LogError(ex, "OnPlayerConnectFull failed");
         }
         return HookResult.Continue;
     }
@@ -107,22 +108,22 @@ public class EventManager(
             {
                 try
                 {
-                    logger.LogInformation($"Saving player {model.steamid} into DB");
-                    await databaseManager.SaveTags(model.steamid);
+                    logger.LogInformation("Saving player {SteamId} into DB", model.SteamId);
+                    await databaseManager.SaveTags(model.SteamId);
                 }
                 catch (Exception ex)
                 {
-                    logger.LogInformation($"DB Error: {ex}");
+                    logger.LogError(ex, "Saving to DB failed");
                 }
                 finally
                 {
-                    playerModelCache.Clear(model.steamid);
+                    playerModelCache.Clear(model.SteamId);
                 }
             });
         }
         catch (Exception ex)
         {
-            logger.LogInformation($"OnPlayerDisconnect - {ex}");
+            logger.LogInformation(ex, "OnPlayerDisconnect failed");
         }
 
         return HookResult.Continue;
@@ -136,14 +137,14 @@ public class EventManager(
 
         playerModelCache.Set(steamid, new PlayerModel
         {
-            steamid = user!.steamid,
-            tag = user.tag,
-            tagcolor = user.tagcolor,
-            namecolor = user.namecolor,
-            chatcolor = user.chatcolor,
-            visibility = user.visibility ?? false,
-            chatvisibility = user.chatvisibility ?? false,
-            scorevisibility = user.scorevisibility ?? false,
+            SteamId = user!.SteamId,
+            Tag = user.Tag,
+            TagColor = user.TagColor,
+            NameColor = user.NameColor,
+            ChatColor = user.ChatColor,
+            Visibility = user.Visibility ?? false,
+            ChatVisibility = user.ChatVisibility ?? false,
+            ScoreVisibility = user.ScoreVisibility ?? false,
         });
     }
 }

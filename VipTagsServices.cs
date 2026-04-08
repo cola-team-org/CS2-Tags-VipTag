@@ -1,9 +1,12 @@
 ﻿using CounterStrikeSharp.API.Core;
+
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CS2Tags_VipTag;
+using VipTags.Managers;
 
-public sealed class PluginServiceCollection : IPluginServiceCollection<CS2Tags_VipTag>
+namespace VipTags;
+
+public sealed class VipTagsServices : IPluginServiceCollection<VipTagsPlugin>
 {
     public void ConfigureServices(IServiceCollection serviceCollection) => serviceCollection
         .AddTransient<EventManager>()

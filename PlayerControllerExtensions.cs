@@ -1,6 +1,6 @@
 ﻿using CounterStrikeSharp.API.Core;
 
-namespace CS2Tags_VipTag;
+namespace VipTags;
 
 public static class PlayerControllerExtensions
 {

@@ -1,17 +1,22 @@
 using System.Diagnostics.CodeAnalysis;
+
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Translations;
 using CounterStrikeSharp.API.Modules.Utils;
+
 using CS2MenuManager.API.Enum;
 using CS2MenuManager.API.Menu;
-using CS2Tags_VipTag.Models;
+
+using VipTags.Models;
+using VipTags.Utilities;
+
 using static TagsApi.Tags;
 
-namespace CS2Tags_VipTag;
+namespace VipTags.Managers;
 
 public sealed class MenuManager(
-    CS2Tags_VipTag plugin,
+    VipTagsPlugin plugin,
     TagsManager tagsManager,
     PlayerModelCache playerModelCache)
 {
@@ -26,7 +31,7 @@ public sealed class MenuManager(
         model = m;
         return true;
     }
-    
+
     public void CreateDisableMenu(CCSPlayerController player, WasdMenu? parentMenu)
     {
         if (!TryGetModel(player, out var model))
@@ -37,7 +42,7 @@ public sealed class MenuManager(
             PrevMenu = parentMenu
         };
         menu.AddItem(
-            $"{plugin.Localizer["ToggleEverythingMenu"]} - [{model.visibility}]",
+            $"{plugin.Localizer["ToggleEverythingMenu"]} - [{model.Visibility}]",
             (p, o) =>
             {
                 if (!TryGetModel(p, out var m))
@@ -46,10 +51,10 @@ public sealed class MenuManager(
                     return;
                 }
 
-                m.visibility = !(m.visibility ?? false);
-                plugin._tagApi?.SetPlayerVisibility(p, m.visibility ?? true);
+                m.Visibility = !(m.Visibility ?? false);
+                plugin.TagApi?.SetPlayerVisibility(p, m.Visibility ?? true);
 
-                if (m.visibility == true)
+                if (m.Visibility == true)
                 {
                     tagsManager.SetEverythingTagRelated(p, 1);
                     p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["Toggled"]}");
@@ -65,7 +70,7 @@ public sealed class MenuManager(
         );
 
         menu.AddItem(
-            $"{plugin.Localizer["ToggleScoreTagMenu"]} - [{model.scorevisibility}]",
+            $"{plugin.Localizer["ToggleScoreTagMenu"]} - [{model.ScoreVisibility}]",
             (p, o) =>
             {
                 if (!TryGetModel(p, out var m))
@@ -74,16 +79,16 @@ public sealed class MenuManager(
                     return;
                 }
 
-                m.scorevisibility = !(m.scorevisibility ?? false);
+                m.ScoreVisibility = !(m.ScoreVisibility ?? false);
 
-                if (m.scorevisibility == true)
+                if (m.ScoreVisibility == true)
                 {
-                    plugin._tagApi?.SetAttribute(p, TagType.ScoreTag, m.tag);
+                    plugin.TagApi?.SetAttribute(p, TagType.ScoreTag, m.Tag);
                     p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["ToggledScoreTag"]}");
                 }
                 else
                 {
-                    plugin._tagApi?.ResetAttribute(p, TagType.ScoreTag);
+                    plugin.TagApi?.ResetAttribute(p, TagType.ScoreTag);
                     p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["UnToggledScoreTag"]}");
                 }
 
@@ -93,7 +98,7 @@ public sealed class MenuManager(
         );
 
         menu.AddItem(
-            $"{plugin.Localizer["ToggleChatMenu"]} - [{model.chatvisibility}]",
+            $"{plugin.Localizer["ToggleChatMenu"]} - [{model.ChatVisibility}]",
             (p, o) =>
             {
                 if (!TryGetModel(p, out var m))
@@ -102,16 +107,16 @@ public sealed class MenuManager(
                     return;
                 }
 
-                m.chatvisibility = !(m.chatvisibility ?? false);
+                m.ChatVisibility = !(m.ChatVisibility ?? false);
 
-                if (m.chatvisibility == true)
+                if (m.ChatVisibility == true)
                 {
                     tagsManager.SetChatTag(p);
                     p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["ToggledChatTag"]}");
                 }
                 else
                 {
-                    plugin._tagApi?.ResetAttribute(p, TagType.ChatTag);
+                    plugin.TagApi?.ResetAttribute(p, TagType.ChatTag);
                     p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["UnToggledChatTag"]}");
                 }
 
@@ -126,7 +131,7 @@ public sealed class MenuManager(
     public void CreateMenuWithColors(CCSPlayerController? player, int type, WasdMenu? parentMenu)
     {
         if (player == null) return;
-        if (!TryGetModel(player, out var model))
+        if (!TryGetModel(player, out _))
             return;
 
         WasdMenu menu = type switch
@@ -165,21 +170,21 @@ public sealed class MenuManager(
                     switch (type)
                     {
                         case 1:
-                            m.tagcolor = color;
+                            m.TagColor = color;
                             player.PrintToChat($"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewTagColor", color]}".ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
                             tagsManager.SetChatTag(p);
                             break;
 
                         case 2:
-                            m.chatcolor = color;
+                            m.ChatColor = color;
                             player.PrintToChat($"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewChatColor", color]}".ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
-                            plugin._tagApi?.SetAttribute(p, TagType.ChatColor, $"{{{color}}}");
+                            plugin.TagApi?.SetAttribute(p, TagType.ChatColor, $"{{{color}}}");
                             break;
 
                         case 3:
-                            m.namecolor = color;
+                            m.NameColor = color;
                             player.PrintToChat($"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewNameColor", color]}".ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
-                            plugin._tagApi?.SetAttribute(p, TagType.NameColor, $"{{{color}}}");
+                            plugin.TagApi?.SetAttribute(p, TagType.NameColor, $"{{{color}}}");
                             break;
                     }
 

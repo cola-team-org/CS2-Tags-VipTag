@@ -1,29 +1,36 @@
-using Microsoft.Extensions.Logging;
-using MySqlConnector;
-using Dapper;
 using CounterStrikeSharp.API.Core;
-using CS2Tags_VipTag.Models;
 
-namespace CS2Tags_VipTag;
+using Dapper;
 
-public sealed class DatabaseManager(CS2Tags_VipTag plugin, PlayerModelCache playerModelCache)
+using Microsoft.Extensions.Logging;
+
+using MySqlConnector;
+
+using VipTags.Models;
+
+namespace VipTags.Managers;
+
+public sealed class DatabaseManager(
+    ILogger<DatabaseManager> logger,
+    VipTagsPlugin plugin,
+    PlayerModelCache playerModelCache)
 {
     private string _dbConnection = string.Empty;
     public async Task InitializeConnection()
     {
-        var Config = plugin.Config;
-        if (Config.DbHost.Length < 1 || Config.DbName.Length < 1 || Config.DbPassword.Length < 1 || Config.DbUsername.Length < 1)
+        var config = plugin.Config;
+        if (config.DbHost.Length < 1 || config.DbName.Length < 1 || config.DbPassword.Length < 1 || config.DbUsername.Length < 1)
         {
-            plugin.Logger.LogInformation($"You need to setup a mysql database!");
+            logger.LogInformation("You need to setup a mysql database!");
         }
 
         MySqlConnectionStringBuilder builder = new()
         {
-            Server = Config.DbHost,
-            UserID = Config.DbUsername,
-            Port = Config.DbPort,
-            Password = Config.DbPassword,
-            Database = Config.DbName,
+            Server = config.DbHost,
+            UserID = config.DbUsername,
+            Port = config.DbPort,
+            Password = config.DbPassword,
+            Database = config.DbName,
             CharacterSet = "utf8mb4"
         };
 
@@ -33,8 +40,7 @@ public sealed class DatabaseManager(CS2Tags_VipTag plugin, PlayerModelCache play
         {
             var connection = new MySqlConnection(builder.ConnectionString);
             await connection.OpenAsync();
-            plugin.Logger.LogInformation($"Succesfully connected to mysql database");
-            var sqlcmd = connection.CreateCommand();
+            logger.LogInformation("Successfully connected to mysql database");
 
             string createTable = @"CREATE TABLE IF NOT EXISTS VipTags_Players (
                                     SteamID VARCHAR(255) NOT NULL,
@@ -74,81 +80,81 @@ public sealed class DatabaseManager(CS2Tags_VipTag plugin, PlayerModelCache play
         }
         catch (Exception ex)
         {
-            plugin.Logger.LogInformation($"Error while trying to connect to database: {ex}");
+            logger.LogInformation(ex, "Error while trying to connect to database");
             return;
         }
     }
 
-    private async Task<bool> UserExist(ulong SteamID)
+    private async Task<bool> UserExist(ulong steamId)
     {
         try
         {
             using var connection = new MySqlConnection(_dbConnection);
             await connection.OpenAsync();
             string sqlExists = "SELECT COUNT(1) FROM `VipTags_Players` WHERE `SteamID` = @SteamID";
-            var exists = await connection.ExecuteScalarAsync<bool>(sqlExists, new { SteamID });
-            plugin.Logger.LogInformation($"Player {SteamID} do exist");
+            var exists = await connection.ExecuteScalarAsync<bool>(sqlExists, new { SteamID = steamId });
+            logger.LogInformation("Player {SteamID} do exist", steamId);
             return exists;
         }
         catch (Exception ex)
         {
-            plugin.Logger.LogInformation($"{ex}");
+            logger.LogInformation(ex, "UserExists failed");
         }
-        plugin.Logger.LogInformation($"Player {SteamID} does not exists");
+        logger.LogInformation("Player {SteamID} does not exists", steamId);
         return false;
     }
     public async Task AddTag(CCSPlayerController player, string tag)
     {
         try
         {
-            ulong SteamID = 0;
+            ulong steamId = 0;
             await Task.Run(() =>
             {
-                SteamID = player.AuthorizedSteamID!.SteamId64;
+                steamId = player.AuthorizedSteamID!.SteamId64;
             });
-            var userExists = await UserExist(SteamID);
+            var userExists = await UserExist(steamId);
             await using var connection = new MySqlConnection(_dbConnection);
             await Task.Run(() => userExists);
             if (userExists)
             {
-                plugin.Logger.LogInformation($"User exists! Updating tag!");
+                logger.LogInformation($"User exists! Updating tag!");
                 await connection.OpenAsync();
                 string sqlUpdate = "UPDATE `VipTags_Players` SET `Tag` = @tag WHERE `SteamID` = @SteamID";
-                await connection.ExecuteAsync(sqlUpdate, new { SteamID, tag });
+                await connection.ExecuteAsync(sqlUpdate, new { SteamID = steamId, tag });
                 return;
             }
             await connection.OpenAsync();
             string sqlInsert = "INSERT INTO `VipTags_Players` (`SteamID`, `Tag`, `Visibility`, `ChatVisibility`, `ScoreVisibility`) VALUES (@SteamID, @tag, true, true, true)";
-            await connection.ExecuteAsync(sqlInsert, new { SteamID, tag });
+            await connection.ExecuteAsync(sqlInsert, new { SteamID = steamId, tag });
         }
         catch (Exception ex)
         {
-            plugin.Logger.LogInformation($"{ex}");
+            logger.LogInformation(ex, "AddTag failed");
         }
         return;
     }
 
-    public async Task SaveTags(ulong SteamID)
+    public async Task SaveTags(ulong steamId)
     {
         try
         {
-            var userExists = await UserExist(SteamID);
+            var userExists = await UserExist(steamId);
             await using var connection = new MySqlConnection(_dbConnection);
-            var model = playerModelCache.Get(SteamID) ?? throw new InvalidOperationException("Not player model");
+            var model = playerModelCache.Get(steamId) ?? throw new InvalidOperationException("Not player model");
             var parameters = new
             {
-                SteamID,
-                Tag = model.tag,
-                TagColor = model.tagcolor ?? null,
-                ChatColor = model.chatcolor ?? null,
-                NameColor = model.namecolor ?? null,
-                Visibility = model.visibility ?? true,
-                ChatVisibility = model.chatvisibility ?? true,
-                ScoreVisibility = model.scorevisibility ?? true,
+                SteamID = steamId,
+                Tag = model.Tag,
+                TagColor = model.TagColor ?? null,
+                ChatColor = model.ChatColor ?? null,
+                NameColor = model.NameColor ?? null,
+                Visibility = model.Visibility ?? true,
+                ChatVisibility = model.ChatVisibility ?? true,
+                ScoreVisibility = model.ScoreVisibility ?? true,
             };
             if (userExists)
             {
-                plugin.Logger.LogInformation($"User exists! Updating tag!");
+                logger.LogInformation($"User exists! Updating tag!");
                 await connection.OpenAsync();
                 string sqlUpdate = "UPDATE `VipTags_Players` SET `Tag` = @Tag, `TagColor` = @TagColor, `NameColor` = @NameColor, `ChatColor` = @ChatColor, `Visibility` = @Visibility, `ChatVisibility` = @ChatVisibility, `ScoreVisibility` = @ScoreVisibility WHERE `SteamID` = @SteamID";
                 await connection.ExecuteAsync(sqlUpdate, parameters);
@@ -160,7 +166,7 @@ public sealed class DatabaseManager(CS2Tags_VipTag plugin, PlayerModelCache play
         }
         catch (Exception err)
         {
-            plugin.Logger.LogInformation($"{err}");
+            logger.LogInformation(err, "SaveTags failed");
         }
         return;
     }
@@ -173,22 +179,22 @@ public sealed class DatabaseManager(CS2Tags_VipTag plugin, PlayerModelCache play
             await connection.OpenAsync();
             foreach (var player in playerModelCache.Players)
             {
-                var steamid = player.steamid;
+                var steamid = player.SteamId;
                 var userExists = await UserExist(steamid);
                 var parameters = new
                 {
                     SteamID = steamid,
-                    Tag = player.tag,
-                    TagColor = player.tagcolor ?? null,
-                    ChatColor = player.chatcolor ?? null,
-                    NameColor = player.namecolor ?? null,
-                    Visibility = player.visibility ?? true,
-                    ChatVis = player.chatvisibility ?? true,
-                    ScoreVis = player.scorevisibility ?? true
+                    Tag = player.Tag,
+                    TagColor = player.TagColor ?? null,
+                    ChatColor = player.ChatColor ?? null,
+                    NameColor = player.NameColor ?? null,
+                    Visibility = player.Visibility ?? true,
+                    ChatVis = player.ChatVisibility ?? true,
+                    ScoreVis = player.ScoreVisibility ?? true
                 };
                 if (userExists)
                 {
-                    plugin.Logger.LogInformation($"Updating tag {steamid}");
+                    logger.LogInformation("Updating tag {SteamId}", steamid);
                     string sqlUpdate = @"
                     UPDATE `VipTags_Players`
                     SET `Tag` = @Tag, `TagColor` = @TagColor, `NameColor` = @NameColor, 
@@ -198,7 +204,7 @@ public sealed class DatabaseManager(CS2Tags_VipTag plugin, PlayerModelCache play
                 }
                 else
                 {
-                    plugin.Logger.LogInformation($"Inserting new tag {steamid}");
+                    logger.LogInformation("Inserting new tag {SteamId}", steamid);
                     string sqlInsert = @"
                     INSERT INTO `VipTags_Players` 
                     (`SteamID`, `Tag`, `TagColor`, `NameColor`, `ChatColor`, `Visibility`, `ChatVisibility`, `ScoreVisibility`) 
@@ -206,18 +212,18 @@ public sealed class DatabaseManager(CS2Tags_VipTag plugin, PlayerModelCache play
                     await connection.ExecuteAsync(sqlInsert, parameters);
                 }
             }
-            plugin.Logger.LogInformation($"All players have been updated / inserted into DB");
+            logger.LogInformation($"All players have been updated / inserted into DB");
         }
         catch (Exception err)
         {
-            plugin.Logger.LogInformation($"SaveAllTags - {err}");
+            logger.LogInformation(err, "SaveAllTags failed");
         }
         return;
     }
     public async Task ChangeColor(CCSPlayerController player, string color, int type)
     {
-        var SteamID = player!.AuthorizedSteamID!.SteamId64;
-        var userExists = await UserExist(SteamID);
+        var steamId = player!.AuthorizedSteamID!.SteamId64;
+        var userExists = await UserExist(steamId);
         string? type1 = null;
         switch (type)
         {
@@ -237,40 +243,40 @@ public sealed class DatabaseManager(CS2Tags_VipTag plugin, PlayerModelCache play
             await Task.Run(() => userExists);
             if (userExists)
             {
-                plugin.Logger.LogInformation($"User exists! Updating color - {type}!");
+                logger.LogInformation("User exists! Updating color - {Type}!", type);
                 await connection.OpenAsync();
                 string sqlUpdate = $"UPDATE `VipTags_Players` SET {type1} = @color WHERE `SteamID` = @SteamID";
-                await connection.ExecuteAsync(sqlUpdate, new { color, SteamID });
+                await connection.ExecuteAsync(sqlUpdate, new { color, SteamID = steamId });
                 return;
             }
             player.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["SetupTag"]}");
         }
         catch (Exception ex)
         {
-            plugin.Logger.LogInformation($"ChangeColor Method: {ex}");
+            logger.LogInformation(ex, "ChangeColor Method failed");
         }
     }
 
-    public async Task<PlayerModel?> FetchPlayerInfo(ulong SteamID)
+    public async Task<PlayerModel?> FetchPlayerInfo(ulong steamId)
     {
         await using var connection = new MySqlConnection(_dbConnection);
-        var userExists = await UserExist(SteamID);
+        var userExists = await UserExist(steamId);
         try
         {
             await Task.Run(() => userExists);
             if (!userExists)
             {
-                plugin.Logger.LogInformation($"No player in database with steamid: {SteamID}");
+                logger.LogInformation("No player in database with steamid: {SteamID}", steamId);
                 return null;
             }
             await connection.OpenAsync();
-            string sqlSelect = $"SELECT * FROM `VipTags_Players` WHERE `SteamID` = {SteamID}";
+            string sqlSelect = $"SELECT * FROM `VipTags_Players` WHERE `SteamID` = {steamId}";
             var user = await connection.QueryFirstOrDefaultAsync<PlayerModel>(sqlSelect);
             return user;
         }
         catch (Exception ex)
         {
-            plugin.Logger.LogInformation($"Fetchplayerinfo: {ex}");
+            logger.LogInformation(ex, "Fetchplayerinfo failed");
         }
         return null;
     }

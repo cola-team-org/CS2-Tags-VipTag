@@ -1,15 +1,18 @@
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Commands;
+
 using CS2MenuManager.API.Menu;
-using CS2Tags_VipTag.Models;
+
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 
-namespace CS2Tags_VipTag;
+using VipTags.Models;
+
+namespace VipTags.Managers;
 
 public sealed class CommandManager(
-    CS2Tags_VipTag plugin,
+    VipTagsPlugin plugin,
     ILogger<CommandManager> logger,
     IStringLocalizer localizer,
     MenuManager menuManager,
@@ -59,34 +62,34 @@ public sealed class CommandManager(
             {
                 model = playerModelCache.Set(player.GetAuthorizedSteamId(), new PlayerModel
                 {
-                    steamid = player.GetAuthorizedSteamId(),
-                    tag = arg,
-                    tagcolor = null,
-                    namecolor = null,
-                    chatcolor = null,
-                    visibility = true,
-                    chatvisibility = true,
-                    scorevisibility = true,
+                    SteamId = player.GetAuthorizedSteamId(),
+                    Tag = arg,
+                    TagColor = null,
+                    NameColor = null,
+                    ChatColor = null,
+                    Visibility = true,
+                    ChatVisibility = true,
+                    ScoreVisibility = true,
                 });
             }
             else
             {
-                model.tag = arg;
+                model.Tag = arg;
             }
 
             if (AdminManager.PlayerHasPermissions(player, plugin.Config.VipScoreboardFlag))
             {
-                plugin._tagApi?.SetAttribute(player, TagsApi.Tags.TagType.ScoreTag, newtag);
+                plugin.TagApi?.SetAttribute(player, TagsApi.Tags.TagType.ScoreTag, newtag);
             }
             if (AdminManager.PlayerHasPermissions(player, plugin.Config.VipChatFlag))
             {
-                if (model.tagcolor == null)
+                if (model.TagColor == null)
                 {
-                    plugin._tagApi?.SetAttribute(player!, TagsApi.Tags.TagType.ChatTag, $"{model.tag} ");
+                    plugin.TagApi?.SetAttribute(player!, TagsApi.Tags.TagType.ChatTag, $"{model.Tag} ");
                 }
                 else
                 {
-                    plugin._tagApi?.SetAttribute(player, TagsApi.Tags.TagType.ChatTag, $"{{{model.tagcolor}}}{arg} ");
+                    plugin.TagApi?.SetAttribute(player, TagsApi.Tags.TagType.ChatTag, $"{{{model.TagColor}}}{arg} ");
                 }
             }
 
@@ -94,7 +97,7 @@ public sealed class CommandManager(
         }
         catch (Exception ex)
         {
-            logger.LogInformation($"TagChange: {ex}");
+            logger.LogInformation(ex, "TagChange failed");
         }
 
     }
@@ -117,35 +120,35 @@ public sealed class CommandManager(
         var model = playerModelCache.Get(player.GetAuthorizedSteamId());
         WasdMenu menu = new(localizer["VipMenu"], plugin);
 
-        menu?.AddItem($"{localizer["ToggleTagMenu"]}", (player, option) =>
+        menu.AddItem($"{localizer["ToggleTagMenu"]}", (player, _) =>
             {
                 menuManager.CreateDisableMenu(player, menu);
             },
             disableOption: (AdminManager.PlayerHasPermissions(player, plugin.Config.VipToggleMenuFlag) && model is not null)
                 ? CS2MenuManager.API.Enum.DisableOption.None
                 : CS2MenuManager.API.Enum.DisableOption.DisableHideNumber);
-        menu?.AddItem(localizer["TagColorMenu"], (player, option) =>
+        menu.AddItem(localizer["TagColorMenu"], (player, _) =>
             {
                 menuManager.CreateMenuWithColors(player, 1, menu);
             },
             disableOption: (AdminManager.PlayerHasPermissions(player, plugin.Config.VipTagColorFlag) && AdminManager.PlayerHasPermissions(player, plugin.Config.VipChatFlag) && model is not null)
                 ? CS2MenuManager.API.Enum.DisableOption.None
                 : CS2MenuManager.API.Enum.DisableOption.DisableHideNumber);
-        menu?.AddItem(localizer["ChatColorMenu"], (player, option) =>
+        menu.AddItem(localizer["ChatColorMenu"], (player, _) =>
             {
                 menuManager.CreateMenuWithColors(player, 2, menu);
             },
             disableOption: AdminManager.PlayerHasPermissions(player, plugin.Config.VipChatColorFlag)
                 ? CS2MenuManager.API.Enum.DisableOption.None
                 : CS2MenuManager.API.Enum.DisableOption.DisableHideNumber);
-        menu?.AddItem(localizer["NameColorMenu"], (player, option) =>
+        menu.AddItem(localizer["NameColorMenu"], (player, _) =>
             {
                 menuManager.CreateMenuWithColors(player, 3, menu);
             },
             disableOption: AdminManager.PlayerHasPermissions(player, plugin.Config.VipNameColorFlag)
                 ? CS2MenuManager.API.Enum.DisableOption.None
                 : CS2MenuManager.API.Enum.DisableOption.DisableHideNumber);
-        menu?.Display(player, 0);
+        menu.Display(player, 0);
     }
 
 }

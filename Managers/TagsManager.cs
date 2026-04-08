@@ -1,10 +1,11 @@
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Admin;
+
 using static TagsApi.Tags;
 
-namespace CS2Tags_VipTag;
+namespace VipTags.Managers;
 
-public sealed class TagsManager(CS2Tags_VipTag plugin, PlayerModelCache playerModelCache)
+public sealed class TagsManager(VipTagsPlugin plugin, PlayerModelCache playerModelCache)
 {
     public void SetEverythingTagRelated(CCSPlayerController player, int mode)
     {
@@ -17,27 +18,27 @@ public sealed class TagsManager(CS2Tags_VipTag plugin, PlayerModelCache playerMo
 
         if (AdminManager.PlayerHasPermissions(player, plugin.Config.VipScoreboardFlag))
         {
-            if (mode == 1 || model.scorevisibility == true)
-                plugin._tagApi?.SetAttribute(player, TagType.ScoreTag, model.tag);
+            if (mode == 1 || model.ScoreVisibility == true)
+                plugin.TagApi?.SetAttribute(player, TagType.ScoreTag, model.Tag);
             else
-                plugin._tagApi?.ResetAttribute(player, TagType.ScoreTag);
+                plugin.TagApi?.ResetAttribute(player, TagType.ScoreTag);
         }
         else
         {
-            plugin._tagApi?.ResetAttribute(player, TagType.ScoreTag);
+            plugin.TagApi?.ResetAttribute(player, TagType.ScoreTag);
         }
 
         // CHAT TAG
         if (AdminManager.PlayerHasPermissions(player, plugin.Config.VipChatFlag))
         {
-            if (mode == 1 || model.chatvisibility == true)
+            if (mode == 1 || model.ChatVisibility == true)
                 SetChatTag(player);
             else
-                plugin._tagApi?.ResetAttribute(player, TagType.ChatTag);
+                plugin.TagApi?.ResetAttribute(player, TagType.ChatTag);
         }
         else
         {
-            plugin._tagApi?.ResetAttribute(player, TagType.ChatTag);
+            plugin.TagApi?.ResetAttribute(player, TagType.ChatTag);
         }
 
         SetNameColor(player);
@@ -55,10 +56,10 @@ public sealed class TagsManager(CS2Tags_VipTag plugin, PlayerModelCache playerMo
 
         if (model is null) return;
 
-        if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipTagColorFlag) || model.tagcolor == null)
-            plugin._tagApi?.SetAttribute(player, TagType.ChatTag, $"{model.tag} ");
+        if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipTagColorFlag) || model.TagColor == null)
+            plugin.TagApi?.SetAttribute(player, TagType.ChatTag, $"{model.Tag} ");
         else
-            plugin._tagApi?.SetAttribute(player, TagType.ChatTag, $"{{{model.tagcolor}}}{model.tag} ");
+            plugin.TagApi?.SetAttribute(player, TagType.ChatTag, $"{{{model.TagColor}}}{model.Tag} ");
     }
 
 
@@ -66,18 +67,18 @@ public sealed class TagsManager(CS2Tags_VipTag plugin, PlayerModelCache playerMo
     {
         if (player.AuthorizedSteamID == null)
             return;
-        
+
         var model = playerModelCache.Get(player.GetAuthorizedSteamId());
 
         if (model is null) return;
 
-        if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipNameColorFlag) || model.namecolor == null)
+        if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipNameColorFlag) || model.NameColor == null)
         {
-            plugin._tagApi?.ResetAttribute(player, TagType.NameColor);
+            plugin.TagApi?.ResetAttribute(player, TagType.NameColor);
             return;
         }
 
-        plugin._tagApi?.SetAttribute(player, TagType.NameColor, $"{{{model.namecolor}}}");
+        plugin.TagApi?.SetAttribute(player, TagType.NameColor, $"{{{model.NameColor}}}");
     }
 
     private void SetChatColor(CCSPlayerController player)
@@ -86,12 +87,12 @@ public sealed class TagsManager(CS2Tags_VipTag plugin, PlayerModelCache playerMo
 
         if (model is null) return;
 
-        if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipChatColorFlag) || model.chatcolor == null)
+        if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipChatColorFlag) || model.ChatColor == null)
         {
-            plugin._tagApi?.ResetAttribute(player, TagType.ChatColor);
+            plugin.TagApi?.ResetAttribute(player, TagType.ChatColor);
             return;
         }
 
-        plugin._tagApi?.SetAttribute(player, TagType.ChatColor, $"{{{model.chatcolor}}}");
+        plugin.TagApi?.SetAttribute(player, TagType.ChatColor, $"{{{model.ChatColor}}}");
     }
 }

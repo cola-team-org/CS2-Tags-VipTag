@@ -1,9 +1,10 @@
 ﻿using System.Text.Json.Serialization;
+
 using CounterStrikeSharp.API.Core;
 
-namespace CS2Tags_VipTag;
+namespace VipTags;
 
-public sealed class TagConfig : BasePluginConfig
+public sealed class VipTagsConfig : BasePluginConfig
 {
     [JsonPropertyName("Vip_BaseFlag")] public string VipBaseFlag { get; set; } = "@vip/vipbaseflag";
     [JsonPropertyName("Vip_SetTagFlag")] public string VipSetTagFlag { get; set; } = "@vip/vipsettag";
