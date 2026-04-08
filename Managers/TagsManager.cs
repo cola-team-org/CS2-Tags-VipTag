@@ -4,7 +4,7 @@ using static TagsApi.Tags;
 
 namespace CS2Tags_VipTag;
 
-internal sealed class TagsManager(CS2Tags_VipTag plugin, PlayerModelCache playerModelCache)
+public sealed class TagsManager(CS2Tags_VipTag plugin, PlayerModelCache playerModelCache)
 {
     public void SetEverythingTagRelated(CCSPlayerController player, int mode)
     {

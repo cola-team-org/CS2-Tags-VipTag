@@ -10,7 +10,10 @@ using static TagsApi.Tags;
 
 namespace CS2Tags_VipTag;
 
-internal sealed class MenuManager(CS2Tags_VipTag plugin, PlayerModelCache playerModelCache)
+public sealed class MenuManager(
+    CS2Tags_VipTag plugin,
+    TagsManager tagsManager,
+    PlayerModelCache playerModelCache)
 {
     private bool TryGetModel(CCSPlayerController player, [NotNullWhen(true)] out PlayerModel? model)
     {
@@ -48,7 +51,7 @@ internal sealed class MenuManager(CS2Tags_VipTag plugin, PlayerModelCache player
 
                 if (m.visibility == true)
                 {
-                    plugin.TagsManager!.SetEverythingTagRelated(p, 1);
+                    tagsManager.SetEverythingTagRelated(p, 1);
                     p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["Toggled"]}");
                 }
                 else
@@ -103,7 +106,7 @@ internal sealed class MenuManager(CS2Tags_VipTag plugin, PlayerModelCache player
 
                 if (m.chatvisibility == true)
                 {
-                    plugin.TagsManager!.SetChatTag(p);
+                    tagsManager.SetChatTag(p);
                     p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["ToggledChatTag"]}");
                 }
                 else
@@ -164,7 +167,7 @@ internal sealed class MenuManager(CS2Tags_VipTag plugin, PlayerModelCache player
                         case 1:
                             m.tagcolor = color;
                             player.PrintToChat($"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewTagColor", color]}".ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
-                            plugin.TagsManager!.SetChatTag(p);
+                            tagsManager.SetChatTag(p);
                             break;
 
                         case 2:

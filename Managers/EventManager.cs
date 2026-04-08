@@ -7,11 +7,15 @@ using CS2Tags_VipTag.Models;
 
 namespace CS2Tags_VipTag;
 
-internal class EventManager(CS2Tags_VipTag plugin, PlayerModelCache playerModelCache)
+public class EventManager(
+    CS2Tags_VipTag plugin,
+    ILogger<EventManager> logger,
+    DatabaseManager databaseManager,
+    TagsManager tagsManager,
+    PlayerModelCache playerModelCache)
 {
     public void InitializeEvents()
     {
-        // _plugin.RegisterEventHandler<EventPlayerSpawn>(OnPlayerSpawn);
         plugin.RegisterEventHandler<EventPlayerConnectFull>(OnPlayerConnect);
         plugin.RegisterEventHandler<EventPlayerDisconnect>(OnPlayerDisconnect);
     }
@@ -42,7 +46,7 @@ internal class EventManager(CS2Tags_VipTag plugin, PlayerModelCache playerModelC
     }
 
     */
-    public HookResult OnPlayerConnect(EventPlayerConnectFull @event, GameEventInfo info)
+    private HookResult OnPlayerConnect(EventPlayerConnectFull @event, GameEventInfo info)
     {
         try
         {
@@ -65,25 +69,25 @@ internal class EventManager(CS2Tags_VipTag plugin, PlayerModelCache playerModelC
 
                         if (model is null or { visibility: false }) return;
 
-                        plugin.TagsManager!.SetEverythingTagRelated(player, 0);
+                        tagsManager.SetEverythingTagRelated(player, 0);
                     });
 
                 }
                 catch (Exception ex)
                 {
-                    plugin.Logger.LogInformation($"{ex}");
+                    logger.LogInformation($"{ex}");
                 }
             });
         }
         catch (Exception ex)
         {
-            plugin.Logger.LogInformation($"OnPlayerConnectFull - {ex}");
+            logger.LogInformation($"OnPlayerConnectFull - {ex}");
         }
         return HookResult.Continue;
     }
 
 
-    public HookResult OnPlayerDisconnect(EventPlayerDisconnect @event, GameEventInfo info)
+    private HookResult OnPlayerDisconnect(EventPlayerDisconnect @event, GameEventInfo info)
     {
         try
         {
@@ -103,12 +107,12 @@ internal class EventManager(CS2Tags_VipTag plugin, PlayerModelCache playerModelC
             {
                 try
                 {
-                    plugin.Logger.LogInformation($"Saving player {model.steamid} into DB");
-                    await plugin.DatabaseManager!.SaveTags(model.steamid);
+                    logger.LogInformation($"Saving player {model.steamid} into DB");
+                    await databaseManager.SaveTags(model.steamid);
                 }
                 catch (Exception ex)
                 {
-                    plugin.Logger.LogInformation($"DB Error: {ex}");
+                    logger.LogInformation($"DB Error: {ex}");
                 }
                 finally
                 {
@@ -118,7 +122,7 @@ internal class EventManager(CS2Tags_VipTag plugin, PlayerModelCache playerModelC
         }
         catch (Exception ex)
         {
-            plugin.Logger.LogInformation($"OnPlayerDisconnect - {ex}");
+            logger.LogInformation($"OnPlayerDisconnect - {ex}");
         }
 
         return HookResult.Continue;
@@ -127,7 +131,7 @@ internal class EventManager(CS2Tags_VipTag plugin, PlayerModelCache playerModelC
 
     private async Task OnClientAuthorizedAsync(ulong steamid)
     {
-        var user = await plugin.DatabaseManager!.FetchPlayerInfo(steamid);
+        var user = await databaseManager.FetchPlayerInfo(steamid);
         if (user == null) return;
 
         playerModelCache.Set(steamid, new PlayerModel
@@ -142,5 +146,4 @@ internal class EventManager(CS2Tags_VipTag plugin, PlayerModelCache playerModelC
             scorevisibility = user.scorevisibility ?? false,
         });
     }
-
 }

@@ -1,8 +1,8 @@
 ﻿using CounterStrikeSharp.API.Core;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TagsApi;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace CS2Tags_VipTag;
 
@@ -33,28 +33,15 @@ public class CS2Tags_VipTag(IServiceProvider serviceProvider) : BasePlugin, IPlu
     internal ITagApi _tagApi = null!;
     public required TagConfig Config { get; set; }
 
-    internal DatabaseManager? DatabaseManager { get; private set; }
-    private EventManager? EventManager { get; set; }
-    internal MenuManager? MenuManager { get; private set; }
-    private CommandManager? CmdManager { get; set; }
-    internal TagsManager? TagsManager { get; private set; }
     internal List<string> Colors =
         [
         "TeamColor", "White", "DarkRed", "Green", "LightYellow", "LightBlue", "Olive", "Lime", "Red", "LightPurple", "Purple", "Grey", "Yellow", "Gold", "Silver", "Blue","DarkBlue", "BlueGrey", "Magenta", "LightRed", "Orange"
         ];
     public override void Load(bool hotReload)
     {
-        var playerManager = serviceProvider.GetRequiredService<PlayerModelCache>();
-        
-        DatabaseManager = new DatabaseManager(this, playerManager);
-        EventManager = new EventManager(this, playerManager);
-        MenuManager = new MenuManager(this, playerManager);
-        CmdManager = new CommandManager(this, playerManager);
-        TagsManager = new TagsManager(this, playerManager);
-
-        _ = DatabaseManager.InitializeConnection(); // TODO: make this wait properly
-        EventManager.InitializeEvents();
-        CmdManager.InitializeCommands();
+        _ = serviceProvider.GetRequiredService<DatabaseManager>().InitializeConnection(); // 🤮
+        serviceProvider.GetRequiredService<EventManager>().InitializeEvents();
+        serviceProvider.GetRequiredService<CommandManager>().InitializeCommands();
 
         Logger.LogInformation("CS2Tags_VipTag - Loaded");
 
@@ -68,10 +55,7 @@ public class CS2Tags_VipTag(IServiceProvider serviceProvider) : BasePlugin, IPlu
     public override void Unload(bool hotReload)
     {
         Logger.LogInformation("CS2Tags_VipTag - Unloaded");
-        if(DatabaseManager != null)
-        {
-            _ = DatabaseManager!.SaveAllTags();
-        }
+        _ = serviceProvider.GetRequiredService<DatabaseManager>().SaveAllTags();
         
     }
     public void OnConfigParsed(TagConfig config)

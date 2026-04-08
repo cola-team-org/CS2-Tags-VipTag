@@ -6,7 +6,7 @@ using CS2Tags_VipTag.Models;
 
 namespace CS2Tags_VipTag;
 
-internal sealed class DatabaseManager(CS2Tags_VipTag plugin, PlayerModelCache playerModelCache)
+public sealed class DatabaseManager(CS2Tags_VipTag plugin, PlayerModelCache playerModelCache)
 {
     private string _dbConnection = string.Empty;
     public async Task InitializeConnection()

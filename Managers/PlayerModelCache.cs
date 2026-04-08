@@ -3,7 +3,7 @@ using CS2Tags_VipTag.Models;
 
 namespace CS2Tags_VipTag;
 
-internal sealed class PlayerModelCache
+public sealed class PlayerModelCache
 {
     private readonly ConcurrentDictionary<ulong, PlayerModel> _players = new();
     
