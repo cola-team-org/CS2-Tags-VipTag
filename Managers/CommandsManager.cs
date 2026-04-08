@@ -102,7 +102,7 @@ public sealed class CommandManager(
     private void TagMenu(CCSPlayerController? player, CommandInfo commandInfo)
     {
         if (player == null || player.IsBot || player.IsHLTV) return;
-        if (!AdminManager.PlayerHasPermissions(player, plugin.Config.Vip_BaseFlag))
+        if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipBaseFlag))
         {
             player!.PrintToChat($"{localizer["Prefix"]}{localizer["NoPermissions"]}");
             return;

@@ -54,7 +54,7 @@ public class EventManager(
             if (player == null || player.IsBot || player.IsHLTV || player.AuthorizedSteamID == null) return HookResult.Continue;
             var steamid64 = player.GetAuthorizedSteamId();
             
-            if (!AdminManager.PlayerHasPermissions(player, plugin.Config.Vip_BaseFlag)) return HookResult.Continue;
+            if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipBaseFlag)) return HookResult.Continue;
             Task.Run(async () =>
             {
                 try
@@ -100,7 +100,7 @@ public class EventManager(
 
             if (model is null) return HookResult.Continue;
 
-            if (!AdminManager.PlayerHasPermissions(player, plugin.Config.Vip_BaseFlag))
+            if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipBaseFlag))
                 return HookResult.Continue;
 
             Task.Run(async () =>

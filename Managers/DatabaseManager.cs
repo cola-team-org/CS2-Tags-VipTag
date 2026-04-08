@@ -12,18 +12,18 @@ public sealed class DatabaseManager(CS2Tags_VipTag plugin, PlayerModelCache play
     public async Task InitializeConnection()
     {
         var Config = plugin.Config;
-        if (Config.DBHost.Length < 1 || Config.DBName.Length < 1 || Config.DBPassword.Length < 1 || Config.DBUsername.Length < 1)
+        if (Config.DbHost.Length < 1 || Config.DbName.Length < 1 || Config.DbPassword.Length < 1 || Config.DbUsername.Length < 1)
         {
             plugin.Logger.LogInformation($"You need to setup a mysql database!");
         }
 
         MySqlConnectionStringBuilder builder = new()
         {
-            Server = Config.DBHost,
-            UserID = Config.DBUsername,
-            Port = Config.DBPort,
-            Password = Config.DBPassword,
-            Database = Config.DBName,
+            Server = Config.DbHost,
+            UserID = Config.DbUsername,
+            Port = Config.DbPort,
+            Password = Config.DbPassword,
+            Database = Config.DbName,
             CharacterSet = "utf8mb4"
         };
 
