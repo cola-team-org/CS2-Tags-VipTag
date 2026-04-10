@@ -83,7 +83,7 @@ public class EventManager(
                 try
                 {
                     logger.LogInformation("Saving player {SteamId} into DB", model.SteamId);
-                    await databaseManager.SaveTags(model.SteamId);
+                    await databaseManager.SaveTags(model);
                 }
                 catch (Exception ex)
                 {
@@ -111,7 +111,7 @@ public class EventManager(
 
         playerModelCache.Set(steamid, new TagSettings
         {
-            SteamId = user!.SteamId,
+            SteamId = user.SteamId,
             Tag = user.Tag,
             TagColor = user.TagColor,
             NameColor = user.NameColor,

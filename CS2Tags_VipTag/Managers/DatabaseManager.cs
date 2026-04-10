@@ -15,91 +15,40 @@ public sealed class DatabaseManager(
 {
     public async Task InitializeConnection()
     {
-        try
-        {
-            await using var connection = await CreateDbConnection();
-            logger.LogInformation("Successfully connected to mysql database");
+        await using var connection = await CreateDbConnection();
+        logger.LogInformation("Successfully connected to mysql database");
 
-            string createTable = @"CREATE TABLE IF NOT EXISTS VipTags_Players (
-                                    SteamID VARCHAR(255) NOT NULL,
-                                    Tag VARCHAR(50)
-                                        CHARACTER SET utf8mb4
-                                        COLLATE utf8mb4_unicode_ci,
-                                    TagColor VARCHAR(50)
-                                        CHARACTER SET utf8mb4
-                                        COLLATE utf8mb4_unicode_ci,
-                                    NameColor VARCHAR(50)
-                                        CHARACTER SET utf8mb4
-                                        COLLATE utf8mb4_unicode_ci,
-                                    ChatColor VARCHAR(50)
-                                        CHARACTER SET utf8mb4
-                                        COLLATE utf8mb4_unicode_ci,
-                                    PRIMARY KEY (SteamID)
-                                )
-                                ENGINE=InnoDB
-                                DEFAULT CHARSET=utf8mb4
-                                COLLATE=utf8mb4_unicode_ci;";
-            await connection.QueryFirstOrDefaultAsync(createTable);
-        }
-        catch (Exception ex)
-        {
-            logger.LogInformation(ex, "Error while trying to connect to database");
-        }
+        string createTable = """
+                             CREATE TABLE IF NOT EXISTS VipTags_Players
+                             (
+                                 SteamID   VARCHAR(255) NOT NULL,
+                                 Tag       VARCHAR(50)
+                                               CHARACTER SET utf8mb4
+                                               COLLATE utf8mb4_unicode_ci,
+                                 TagColor  VARCHAR(50)
+                                               CHARACTER SET utf8mb4
+                                               COLLATE utf8mb4_unicode_ci,
+                                 NameColor VARCHAR(50)
+                                               CHARACTER SET utf8mb4
+                                               COLLATE utf8mb4_unicode_ci,
+                                 ChatColor VARCHAR(50)
+                                               CHARACTER SET utf8mb4
+                                               COLLATE utf8mb4_unicode_ci,
+                                 PRIMARY KEY (SteamID)
+                             )
+                                 ENGINE = InnoDB
+                                 DEFAULT CHARSET = utf8mb4
+                                 COLLATE = utf8mb4_unicode_ci;
+                             """;
+        await connection.QueryFirstOrDefaultAsync(createTable);
+        logger.LogInformation("Ensured database has been setup");
     }
 
-    private async Task<bool> UserExist(ulong steamId)
+    public async Task SaveTags(TagSettings settings)
     {
-        try
-        {
-            await using var connection = await CreateDbConnection();
-            string sqlExists = "SELECT COUNT(1) FROM `VipTags_Players` WHERE `SteamID` = @SteamID";
-            var exists = await connection.ExecuteScalarAsync<bool>(sqlExists, new { SteamID = steamId });
-            logger.LogInformation("Player {SteamID} do exist", steamId);
-            return exists;
-        }
-        catch (Exception ex)
-        {
-            logger.LogInformation(ex, "UserExists failed");
-        }
-
-        logger.LogInformation("Player {SteamID} does not exists", steamId);
-        return false;
-    }
-
-    public async Task SaveTags(ulong steamId)
-    {
-        try
-        {
-            var userExists = await UserExist(steamId);
-            await using var connection = await CreateDbConnection();
-            var model = playerModelCache.Get(steamId) ?? throw new InvalidOperationException("Not player model");
-            var parameters = new
-            {
-                SteamID = steamId,
-                Tag = model.Tag,
-                TagColor = model.TagColor ?? null,
-                ChatColor = model.ChatColor ?? null,
-                NameColor = model.NameColor ?? null,
-            };
-            if (userExists)
-            {
-                logger.LogInformation($"User exists! Updating tag!");
-                string sqlUpdate =
-                    "UPDATE `VipTags_Players` SET `Tag` = @Tag, `TagColor` = @TagColor, `NameColor` = @NameColor, `ChatColor` = @ChatColor WHERE `SteamID` = @SteamID";
-                await connection.ExecuteAsync(sqlUpdate, parameters);
-                return;
-            }
-
-            string sqlInsert =
-                "INSERT INTO `VipTags_Players` (`SteamID`, `Tag`, `TagColor`, `NameColor`, `ChatColor`) VALUES (@SteamID, @Tag, @TagColor, @NameColor, @ChatColor)";
-            await connection.ExecuteAsync(sqlInsert, parameters);
-        }
-        catch (Exception err)
-        {
-            logger.LogInformation(err, "SaveTags failed");
-        }
-
-        return;
+        logger.LogInformation("Saving tag settings for {SteamId}", settings.SteamId);
+        await using var connection = await CreateDbConnection();
+        await SaveTagsInternal(connection, settings);
     }
 
     public async Task DeleteTags(ulong steamId)
@@ -112,72 +61,28 @@ public sealed class DatabaseManager(
 
     public async Task SaveAllTags()
     {
-        try
+        await using var connection = await CreateDbConnection();
+        foreach (var player in playerModelCache.Players)
         {
-            await using var connection = await CreateDbConnection();
-            foreach (var player in playerModelCache.Players)
-            {
-                var steamid = player.SteamId;
-                var userExists = await UserExist(steamid);
-                var parameters = new
-                {
-                    SteamID = steamid,
-                    player.Tag,
-                    TagColor = player.TagColor ?? null,
-                    ChatColor = player.ChatColor ?? null,
-                    NameColor = player.NameColor ?? null,
-                };
-                if (userExists)
-                {
-                    logger.LogInformation("Updating tag {SteamId}", steamid);
-                    string sqlUpdate = @"
-                    UPDATE `VipTags_Players`
-                    SET `Tag` = @Tag, `TagColor` = @TagColor, `NameColor` = @NameColor, 
-                        `ChatColor` = @ChatColor WHERE `SteamID` = @SteamID";
-                    await connection.ExecuteAsync(sqlUpdate, parameters);
-                }
-                else
-                {
-                    logger.LogInformation("Inserting new tag {SteamId}", steamid);
-                    string sqlInsert = @"
-                    INSERT INTO `VipTags_Players` 
-                    (`SteamID`, `Tag`, `TagColor`, `NameColor`, `ChatColor`) 
-                    VALUES (@SteamID, @Tag, @TagColor, @NameColor, @ChatColor)";
-                    await connection.ExecuteAsync(sqlInsert, parameters);
-                }
-            }
+            await SaveTagsInternal(connection, player);
+        }
 
-            logger.LogInformation($"All players have been updated / inserted into DB");
-        }
-        catch (Exception err)
-        {
-            logger.LogInformation(err, "SaveAllTags failed");
-        }
+        logger.LogInformation("All players have been updated / inserted into DB");
     }
 
     public async Task<TagSettings?> FetchPlayerInfo(ulong steamId)
     {
         await using var connection = await CreateDbConnection();
-        // TODO: do in one call....
-        var userExists = await UserExist(steamId);
-        try
-        {
-            if (!userExists)
-            {
-                logger.LogInformation("No player in database with steamid: {SteamID}", steamId);
-                return null;
-            }
+        var user = await connection.QueryFirstOrDefaultAsync<TagSettings>(
+            "SELECT * FROM `VipTags_Players` WHERE `SteamID` = @steamId",
+            new { steamId });
 
-            string sqlSelect = $"SELECT * FROM `VipTags_Players` WHERE `SteamID` = {steamId}";
-            var user = await connection.QueryFirstOrDefaultAsync<TagSettings>(sqlSelect);
-            return user;
-        }
-        catch (Exception ex)
+        if (user is null)
         {
-            logger.LogInformation(ex, "Fetchplayerinfo failed");
+            logger.LogInformation("Player with {SteamID} was not found", steamId);
         }
 
-        return null;
+        return user;
     }
 
     private async Task<MySqlConnection> CreateDbConnection()
@@ -201,5 +106,16 @@ public sealed class DatabaseManager(
         var connection = new MySqlConnection(builder.ConnectionString);
         await connection.OpenAsync();
         return connection;
+    }
+
+    private static async Task SaveTagsInternal(MySqlConnection connection, TagSettings settings)
+    {
+        await connection.ExecuteAsync(
+            """
+            INSERT INTO `VipTags_Players` (`SteamID`, `Tag`, `TagColor`, `NameColor`, `ChatColor`)
+            VALUES (@SteamId, @Tag, @TagColor, @NameColor, @ChatColor)
+            ON DUPLICATE KEY UPDATE `Tag` = @Tag, `TagColor` = @TagColor, `NameColor` = @NameColor, `ChatColor` = @ChatColor
+            """,
+            settings);
     }
 }

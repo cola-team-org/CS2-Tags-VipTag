@@ -9,7 +9,7 @@ namespace VipTags;
 
 // TODO: follow up on reload admins during map breaking tags.
 
-public class VipTagsPlugin(IServiceProvider serviceProvider) : BasePlugin, IPluginConfig<VipTagsConfig>
+public sealed class VipTagsPlugin(IServiceProvider serviceProvider) : BasePlugin, IPluginConfig<VipTagsConfig>
 {
     public override string ModuleName => "CS2Tags_VipTag";
     public override string ModuleVersion => "0.4.1";
