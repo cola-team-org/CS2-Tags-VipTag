@@ -16,6 +16,7 @@ namespace VipTags.Managers;
 public sealed class CommandManager(
     VipTagsPlugin plugin,
     ILogger<CommandManager> logger,
+    DatabaseManager databaseManager,
     IStringLocalizer localizer,
     MenuManager menuManager,
     TagsManager tagsManager,
@@ -23,6 +24,7 @@ public sealed class CommandManager(
 {
     public void InitializeCommands()
     {
+        // TODO: clear tag and not just wipe all? Perhaps a reset for each color too.
         plugin.AddCommand("css_settag", "Ability for VIP to change their Scoreboard and Chat tag", TagChange);
         plugin.AddCommand("css_tagmenu", "Ability for VIP to change their Scoreboard and Chat tag", TagMenu);
     }
@@ -59,9 +61,6 @@ public sealed class CommandManager(
                     TagColor = null,
                     NameColor = null,
                     ChatColor = null,
-                    Visibility = true,
-                    ChatVisibility = true,
-                    ScoreVisibility = true,
                 });
             }
             else
@@ -87,19 +86,23 @@ public sealed class CommandManager(
             player.PrintToChat($"{localizer["Prefix"]}{localizer["NoPermissions"]}");
             return;
         }
-        /*
-        if (!_plugin.Players.ContainsKey(player.AuthorizedSteamID!.SteamId64))
+
+        var model = playerModelCache.Get(player.GetAuthorizedSteamId());
+
+        if (model is null)
         {
-            player.PrintToChat($"{_localizer["Prefix"]}{_localizer["SetupTag"]}");
+            player.PrintToChat($"{localizer["Prefix"]}{localizer["SetupTag"]}");
             return;
         }
-        */
-        var model = playerModelCache.Get(player.GetAuthorizedSteamId());
+
         WasdMenu menu = new(localizer["VipMenu"], plugin);
 
-        menu.AddItem($"{localizer["ToggleTagMenu"]}", (player, _) =>
+        menu.AddItem($"{localizer["ResetTag"]}", (player, _) => // TODO: add string
             {
-                menuManager.CreateDisableMenu(player, menu);
+                playerModelCache.Clear(player.GetAuthorizedSteamId());
+                player.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["TagReset"]}".ReplaceColorTags());
+                var steamId = player.GetAuthorizedSteamId();
+                Task.Run(() => databaseManager.DeleteTags(steamId));
             },
             disableOption: (AdminManager.PlayerHasPermissions(player, plugin.Config.VipToggleMenuFlag) && model is not null)
                 ? CS2MenuManager.API.Enum.DisableOption.None

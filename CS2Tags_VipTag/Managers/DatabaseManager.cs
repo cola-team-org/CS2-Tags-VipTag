@@ -34,9 +34,6 @@ public sealed class DatabaseManager(
                                     ChatColor VARCHAR(50)
                                         CHARACTER SET utf8mb4
                                         COLLATE utf8mb4_unicode_ci,
-                                    Visibility TINYINT(1),
-                                    ChatVisibility TINYINT(1),
-                                    ScoreVisibility TINYINT(1),
                                     PRIMARY KEY (SteamID)
                                 )
                                 ENGINE=InnoDB
@@ -83,21 +80,18 @@ public sealed class DatabaseManager(
                 TagColor = model.TagColor ?? null,
                 ChatColor = model.ChatColor ?? null,
                 NameColor = model.NameColor ?? null,
-                Visibility = model.Visibility ?? true,
-                ChatVisibility = model.ChatVisibility ?? true,
-                ScoreVisibility = model.ScoreVisibility ?? true,
             };
             if (userExists)
             {
                 logger.LogInformation($"User exists! Updating tag!");
                 string sqlUpdate =
-                    "UPDATE `VipTags_Players` SET `Tag` = @Tag, `TagColor` = @TagColor, `NameColor` = @NameColor, `ChatColor` = @ChatColor, `Visibility` = @Visibility, `ChatVisibility` = @ChatVisibility, `ScoreVisibility` = @ScoreVisibility WHERE `SteamID` = @SteamID";
+                    "UPDATE `VipTags_Players` SET `Tag` = @Tag, `TagColor` = @TagColor, `NameColor` = @NameColor, `ChatColor` = @ChatColor WHERE `SteamID` = @SteamID";
                 await connection.ExecuteAsync(sqlUpdate, parameters);
                 return;
             }
 
             string sqlInsert =
-                "INSERT INTO `VipTags_Players` (`SteamID`, `Tag`, `TagColor`, `NameColor`, `ChatColor`, `Visibility`, `ChatVisibility`, `ScoreVisibility`) VALUES (@SteamID, @Tag, @TagColor, @NameColor, @ChatColor, @Visibility, @ChatVisibility, @ScoreVisibility)";
+                "INSERT INTO `VipTags_Players` (`SteamID`, `Tag`, `TagColor`, `NameColor`, `ChatColor`) VALUES (@SteamID, @Tag, @TagColor, @NameColor, @ChatColor)";
             await connection.ExecuteAsync(sqlInsert, parameters);
         }
         catch (Exception err)
@@ -106,6 +100,14 @@ public sealed class DatabaseManager(
         }
 
         return;
+    }
+
+    public async Task DeleteTags(ulong steamId)
+    {
+        logger.LogInformation("Deleting tag settings for {SteamId}", steamId);
+
+        await using var connection = await CreateDbConnection();
+        await connection.ExecuteAsync("DELETE FROM VipTags_Players WHERE SteamID = @steamId", new { steamId });
     }
 
     public async Task SaveAllTags()
@@ -120,13 +122,10 @@ public sealed class DatabaseManager(
                 var parameters = new
                 {
                     SteamID = steamid,
-                    Tag = player.Tag,
+                    player.Tag,
                     TagColor = player.TagColor ?? null,
                     ChatColor = player.ChatColor ?? null,
                     NameColor = player.NameColor ?? null,
-                    Visibility = player.Visibility ?? true,
-                    ChatVis = player.ChatVisibility ?? true,
-                    ScoreVis = player.ScoreVisibility ?? true
                 };
                 if (userExists)
                 {
@@ -134,8 +133,7 @@ public sealed class DatabaseManager(
                     string sqlUpdate = @"
                     UPDATE `VipTags_Players`
                     SET `Tag` = @Tag, `TagColor` = @TagColor, `NameColor` = @NameColor, 
-                        `ChatColor` = @ChatColor, `Visibility` = @Visibility, `ChatVisibility` = @ChatVis, `ScoreVisibility` = @ScoreVis
-                    WHERE `SteamID` = @SteamID";
+                        `ChatColor` = @ChatColor WHERE `SteamID` = @SteamID";
                     await connection.ExecuteAsync(sqlUpdate, parameters);
                 }
                 else
@@ -143,8 +141,8 @@ public sealed class DatabaseManager(
                     logger.LogInformation("Inserting new tag {SteamId}", steamid);
                     string sqlInsert = @"
                     INSERT INTO `VipTags_Players` 
-                    (`SteamID`, `Tag`, `TagColor`, `NameColor`, `ChatColor`, `Visibility`, `ChatVisibility`, `ScoreVisibility`) 
-                    VALUES (@SteamID, @Tag, @TagColor, @NameColor, @ChatColor, @Visibility, @ChatVis, @ScoreVis)";
+                    (`SteamID`, `Tag`, `TagColor`, `NameColor`, `ChatColor`) 
+                    VALUES (@SteamID, @Tag, @TagColor, @NameColor, @ChatColor)";
                     await connection.ExecuteAsync(sqlInsert, parameters);
                 }
             }

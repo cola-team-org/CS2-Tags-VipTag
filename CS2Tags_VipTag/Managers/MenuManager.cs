@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 
-using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 
 using CS2MenuManager.API.Enum;
@@ -26,100 +25,6 @@ public sealed class MenuManager(
 
         model = m;
         return true;
-    }
-
-    // TODO: replace with "reset tag" options
-    public void CreateDisableMenu(CCSPlayerController player, WasdMenu? parentMenu)
-    {
-        if (!TryGetModel(player, out var model))
-            return;
-
-        WasdMenu menu = new("Disable menu", plugin)
-        {
-            PrevMenu = parentMenu
-        };
-        menu.AddItem(
-            $"{plugin.Localizer["ToggleEverythingMenu"]} - [{model.Visibility}]",
-            (p, o) =>
-            {
-                if (!TryGetModel(p, out var m))
-                {
-                    o.PostSelectAction = PostSelectAction.Close;
-                    return;
-                }
-
-                m.Visibility = !(m.Visibility ?? false);
-                tagsManager.ApplyTags(player, model);
-
-                if (m.Visibility == true)
-                {
-                    p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["Toggled"]}");
-                }
-                else
-                {
-                    p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["UnToggled"]}");
-                }
-
-                o.PostSelectAction = PostSelectAction.Close;
-                Server.NextWorldUpdate(() => CreateDisableMenu(p, parentMenu));
-            }
-        );
-
-        menu.AddItem(
-            $"{plugin.Localizer["ToggleScoreTagMenu"]} - [{model.ScoreVisibility}]",
-            (p, o) =>
-            {
-                if (!TryGetModel(p, out var m))
-                {
-                    o.PostSelectAction = PostSelectAction.Close;
-                    return;
-                }
-
-                m.ScoreVisibility = !(m.ScoreVisibility ?? false);
-                tagsManager.ApplyTags(player, m);
-
-                if (m.ScoreVisibility == true)
-                {
-                    p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["ToggledScoreTag"]}");
-                }
-                else
-                {
-                    p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["UnToggledScoreTag"]}");
-                }
-
-                o.PostSelectAction = PostSelectAction.Close;
-                Server.NextWorldUpdate(() => CreateDisableMenu(p, parentMenu));
-            }
-        );
-
-        menu.AddItem(
-            $"{plugin.Localizer["ToggleChatMenu"]} - [{model.ChatVisibility}]",
-            (p, o) =>
-            {
-                if (!TryGetModel(p, out var m))
-                {
-                    o.PostSelectAction = PostSelectAction.Close;
-                    return;
-                }
-
-                m.ChatVisibility = !(m.ChatVisibility ?? false);
-                tagsManager.ApplyTags(player, m);
-
-                if (m.ChatVisibility == true)
-                {
-                    p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["ToggledChatTag"]}");
-                }
-                else
-                {
-                    p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["UnToggledChatTag"]}");
-                }
-
-                o.PostSelectAction = PostSelectAction.Close;
-                Server.NextWorldUpdate(() => CreateDisableMenu(p, parentMenu));
-            }
-        );
-
-        menu.Display(player, 0);
     }
 
     public delegate void OnColorSelected(string color, TagSettings tagSettings);

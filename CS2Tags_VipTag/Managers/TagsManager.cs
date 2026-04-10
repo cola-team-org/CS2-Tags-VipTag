@@ -1,3 +1,4 @@
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 
 using TagsApi;
@@ -28,28 +29,14 @@ public sealed class TagsManager
         // TODO: run in server frame?
         TagApi.ResetAttribute(player, TagType.ScoreTag | TagType.ChatTag | TagType.NameColor | TagType.ChatColor);
 
-        if (settings.Visibility != true)
-        {
-            return;
-        }
-
         if (settings.Tag is not null)
         {
             var colorPrefix = settings.TagColor is not null ? $"{{{settings.TagColor}}}" : "";
             var tagWithColor = $"{colorPrefix}{settings.Tag} ";
-
-            if (settings.ChatVisibility == true)
-            {
-                TagApi.SetAttribute(player, TagType.ChatTag, tagWithColor);
-            }
-
-            if (settings.ScoreVisibility == true)
-            {
-                TagApi.SetAttribute(player, TagType.ScoreTag, tagWithColor);
-            }
+            // TODO: fix issue with colors bleeding over
+            TagApi.SetAttribute(player, TagType.ChatTag, tagWithColor);
+            TagApi.SetAttribute(player, TagType.ScoreTag, settings.Tag);
         }
-
-
 
         SetColorIfPresent(player, TagType.NameColor,  settings.NameColor);
         SetColorIfPresent(player, TagType.ChatColor,  settings.ChatColor);

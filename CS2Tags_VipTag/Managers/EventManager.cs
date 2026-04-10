@@ -68,7 +68,7 @@ public class EventManager(
                     {
                         var model = playerModelCache.Get(steamid64);
 
-                        if (model is null or { Visibility: false }) return;
+                        if (model is null) return;
 
                         tagsManager.ApplyTags(player, model);
                     });
@@ -142,9 +142,6 @@ public class EventManager(
             TagColor = user.TagColor,
             NameColor = user.NameColor,
             ChatColor = user.ChatColor,
-            Visibility = user.Visibility ?? false,
-            ChatVisibility = user.ChatVisibility ?? false,
-            ScoreVisibility = user.ScoreVisibility ?? false,
         });
     }
 }
