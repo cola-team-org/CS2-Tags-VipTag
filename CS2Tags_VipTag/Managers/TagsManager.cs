@@ -23,6 +23,7 @@ public sealed class TagsManager
         }
     }
 
+    // TODO: consider using message processor instead
     public void ApplyTags(CCSPlayerController player, TagSettings settings)
     {
         // TODO: compute permissions somewhere

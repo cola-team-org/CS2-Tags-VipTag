@@ -2,6 +2,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 
+using VipTags.Authorization;
 using VipTags.Managers;
 
 namespace VipTags;
@@ -14,5 +15,6 @@ public sealed class VipTagsServices : IPluginServiceCollection<VipTagsPlugin>
         .AddTransient<MenuManager>()
         .AddTransient<TagsManager>()
         .AddTransient<DatabaseManager>()
+        .AddTransient<AuthorizationComputer>()
         .AddSingleton<PlayerModelCache>();
 }

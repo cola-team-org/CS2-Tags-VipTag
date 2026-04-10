@@ -1,6 +1,5 @@
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Translations;
-using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Utils;
 
@@ -9,12 +8,14 @@ using CS2MenuManager.API.Menu;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 
+using VipTags.Authorization;
 using VipTags.Models;
 
 namespace VipTags.Managers;
 
 public sealed class CommandManager(
     VipTagsPlugin plugin,
+    AuthorizationComputer authorizationComputer,
     ILogger<CommandManager> logger,
     DatabaseManager databaseManager,
     IStringLocalizer localizer,
@@ -33,7 +34,9 @@ public sealed class CommandManager(
     private void TagChange(CCSPlayerController? player, CommandInfo commandInfo)
     {
         if (player == null || player.IsBot || player.IsHLTV) return;
-        if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipSetTagFlag))
+
+        var authorizationContext = authorizationComputer.ComputeAuthorizationContext(player);
+        if (!authorizationContext.CanSetCustomTag)
         {
             player.PrintToChat($"{localizer["Prefix"]}{localizer["NoPermissions"]}");
             return;
@@ -47,16 +50,15 @@ public sealed class CommandManager(
             return;
         }
 
-        var newtag = $"{arg} ";
         try
         {
-            var model = playerModelCache.Get(player.GetAuthorizedSteamId());
+            var model = playerModelCache.Get(authorizationContext.SteamId);
 
             if (model is null)
             {
-                model = playerModelCache.Set(player.GetAuthorizedSteamId(), new TagSettings
+                model = playerModelCache.Set(authorizationContext.SteamId, new TagSettings
                 {
-                    SteamId = player.GetAuthorizedSteamId(),
+                    SteamId = authorizationContext.SteamId,
                     Tag = arg,
                     TagColor = null,
                     NameColor = null,
@@ -81,13 +83,15 @@ public sealed class CommandManager(
     private void TagMenu(CCSPlayerController? player, CommandInfo commandInfo)
     {
         if (player == null || player.IsBot || player.IsHLTV) return;
-        if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipBaseFlag))
+
+        var authorizationContext = authorizationComputer.ComputeAuthorizationContext(player);
+        if (!authorizationContext.CanSetAnything)
         {
             player.PrintToChat($"{localizer["Prefix"]}{localizer["NoPermissions"]}");
             return;
         }
 
-        var model = playerModelCache.Get(player.GetAuthorizedSteamId());
+        var model = playerModelCache.Get(authorizationContext.SteamId);
 
         if (model is null)
         {
@@ -99,12 +103,11 @@ public sealed class CommandManager(
 
         menu.AddItem($"{localizer["ResetTag"]}", (player, _) => // TODO: add string
             {
-                playerModelCache.Clear(player.GetAuthorizedSteamId());
+                playerModelCache.Clear(authorizationContext.SteamId);
                 player.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["TagReset"]}".ReplaceColorTags());
-                var steamId = player.GetAuthorizedSteamId();
-                Task.Run(() => databaseManager.DeleteTags(steamId));
+                Task.Run(() => databaseManager.DeleteTags(authorizationContext.SteamId));
             },
-            disableOption: (AdminManager.PlayerHasPermissions(player, plugin.Config.VipToggleMenuFlag) && model is not null)
+            disableOption: authorizationContext.CanSetCustomTag
                 ? CS2MenuManager.API.Enum.DisableOption.None
                 : CS2MenuManager.API.Enum.DisableOption.DisableHideNumber);
         menu.AddItem(localizer["TagColorMenu"], (player, _) =>
@@ -121,7 +124,7 @@ public sealed class CommandManager(
                     },
                     menu);
             },
-            disableOption: (AdminManager.PlayerHasPermissions(player, plugin.Config.VipTagColorFlag) && AdminManager.PlayerHasPermissions(player, plugin.Config.VipChatFlag) && model is not null)
+            disableOption: authorizationContext.CanSetTagColor
                 ? CS2MenuManager.API.Enum.DisableOption.None
                 : CS2MenuManager.API.Enum.DisableOption.DisableHideNumber);
         menu.AddItem(localizer["ChatColorMenu"], (player, _) =>
@@ -137,7 +140,7 @@ public sealed class CommandManager(
                                 .ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
                     }, menu);
             },
-            disableOption: AdminManager.PlayerHasPermissions(player, plugin.Config.VipChatColorFlag)
+            disableOption: authorizationContext.CanSetChatColor
                 ? CS2MenuManager.API.Enum.DisableOption.None
                 : CS2MenuManager.API.Enum.DisableOption.DisableHideNumber);
         menu.AddItem(localizer["NameColorMenu"], (player, _) =>
@@ -154,7 +157,7 @@ public sealed class CommandManager(
                     },
                     menu);
             },
-            disableOption: AdminManager.PlayerHasPermissions(player, plugin.Config.VipNameColorFlag)
+            disableOption: authorizationContext.CanSetNameColor
                 ? CS2MenuManager.API.Enum.DisableOption.None
                 : CS2MenuManager.API.Enum.DisableOption.DisableHideNumber);
         menu.Display(player, 0);

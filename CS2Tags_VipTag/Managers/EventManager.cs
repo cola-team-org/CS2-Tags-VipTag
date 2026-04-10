@@ -1,9 +1,9 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Admin;
 
 using Microsoft.Extensions.Logging;
 
+using VipTags.Authorization;
 using VipTags.Models;
 
 namespace VipTags.Managers;
@@ -12,6 +12,7 @@ public class EventManager(
     VipTagsPlugin plugin,
     ILogger<EventManager> logger,
     DatabaseManager databaseManager,
+    AuthorizationComputer authorizationComputer,
     TagsManager tagsManager,
     PlayerModelCache playerModelCache)
 {
@@ -21,52 +22,27 @@ public class EventManager(
         plugin.RegisterEventHandler<EventPlayerDisconnect>(OnPlayerDisconnect);
     }
 
-    /*
-    public HookResult OnPlayerSpawn(EventPlayerSpawn @event, GameEventInfo info)
-    {
-        try
-        {
-            var player = @event.Userid;
-            if (player == null || player.IsBot || player.IsHLTV) return HookResult.Continue;
-            var steamid64 = player!.AuthorizedSteamID!.SteamId64;
-            if (!_plugin.Players.ContainsKey(steamid64)) return HookResult.Continue;
-            if (!AdminManager.PlayerHasPermissions(player, _plugin.Config.VipFlag)) return HookResult.Continue;
-            //var VipTag = $" {_plugin.Players[steamid64]!.tag}";
-            if (_plugin.Players[steamid64]!.visibility == false) { return HookResult.Continue; }
-            //_plugin._tagApi?.SetAttribute(player!, Tags.TagType.ScoreTag, VipTag);
-
-            _plugin.TagsManager!.SetEverythingTagRelated(player, 0);
-
-        }
-        catch (Exception ex)
-        {
-            _plugin.Logger.LogInformation($"On_plugin.Playerspawn - {ex}");
-        }
-
-        return HookResult.Continue;
-    }
-
-    */
     private HookResult OnPlayerConnect(EventPlayerConnectFull @event, GameEventInfo info)
     {
         try
         {
             var player = @event.Userid;
             if (player == null || player.IsBot || player.IsHLTV || player.AuthorizedSteamID == null) return HookResult.Continue;
-            var steamid64 = player.GetAuthorizedSteamId();
 
-            if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipBaseFlag)) return HookResult.Continue;
+            var authorizationContext = authorizationComputer.ComputeAuthorizationContext(player);
+
+            if (!authorizationContext.CanSetAnything) return HookResult.Continue;
             Task.Run(async () =>
             {
                 try
                 {
-                    await OnClientAuthorizedAsync(steamid64);
+                    await OnClientAuthorizedAsync(authorizationContext.SteamId);
 
                     //if (!_plugin.Players.ContainsKey(steamid64)) return;
 
                     Server.NextFrame(() =>
                     {
-                        var model = playerModelCache.Get(steamid64);
+                        var model = playerModelCache.Get(authorizationContext.SteamId);
 
                         if (model is null) return;
 
@@ -97,12 +73,10 @@ public class EventManager(
             if (player == null || player.IsBot || player.IsHLTV || player.AuthorizedSteamID is null)
                 return HookResult.Continue;
 
-            var model = playerModelCache.Get(player.GetAuthorizedSteamId());
+            var authorizationContext = authorizationComputer.ComputeAuthorizationContext(player);
+            var model = playerModelCache.Get(authorizationContext.SteamId);
 
-            if (model is null) return HookResult.Continue;
-
-            if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipBaseFlag))
-                return HookResult.Continue;
+            if (model is null || !authorizationContext.CanSetAnything) return HookResult.Continue;
 
             Task.Run(async () =>
             {
