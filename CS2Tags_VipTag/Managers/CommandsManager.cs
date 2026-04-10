@@ -1,6 +1,8 @@
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Core.Translations;
 using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Commands;
+using CounterStrikeSharp.API.Modules.Utils;
 
 using CS2MenuManager.API.Menu;
 
@@ -104,21 +106,50 @@ public sealed class CommandManager(
                 : CS2MenuManager.API.Enum.DisableOption.DisableHideNumber);
         menu.AddItem(localizer["TagColorMenu"], (player, _) =>
             {
-                menuManager.CreateMenuWithColors(player, 1, menu);
+                menuManager.CreateMenuWithColors(
+                    player,
+                    plugin.Localizer["TagColorMenu"],
+                    (color, settings) =>
+                    {
+                        settings.TagColor = color;
+                        player.PrintToChat(
+                            $"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewTagColor", color]}"
+                                .ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
+                    },
+                    menu);
             },
             disableOption: (AdminManager.PlayerHasPermissions(player, plugin.Config.VipTagColorFlag) && AdminManager.PlayerHasPermissions(player, plugin.Config.VipChatFlag) && model is not null)
                 ? CS2MenuManager.API.Enum.DisableOption.None
                 : CS2MenuManager.API.Enum.DisableOption.DisableHideNumber);
         menu.AddItem(localizer["ChatColorMenu"], (player, _) =>
             {
-                menuManager.CreateMenuWithColors(player, 2, menu);
+                menuManager.CreateMenuWithColors(
+                    player,
+                    plugin.Localizer["ChatColorMenu"],
+                    (color, settings) =>
+                    {
+                        settings.ChatColor = color;
+                        player.PrintToChat(
+                            $"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewChatColor", color]}"
+                                .ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
+                    }, menu);
             },
             disableOption: AdminManager.PlayerHasPermissions(player, plugin.Config.VipChatColorFlag)
                 ? CS2MenuManager.API.Enum.DisableOption.None
                 : CS2MenuManager.API.Enum.DisableOption.DisableHideNumber);
         menu.AddItem(localizer["NameColorMenu"], (player, _) =>
             {
-                menuManager.CreateMenuWithColors(player, 3, menu);
+                menuManager.CreateMenuWithColors(
+                    player,
+                    plugin.Localizer["NameColorMenu"],
+                    (color, settings) =>
+                    {
+                        settings.NameColor = color;
+                        player.PrintToChat(
+                            $"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewNameColor", color]}"
+                                .ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
+                    },
+                    menu);
             },
             disableOption: AdminManager.PlayerHasPermissions(player, plugin.Config.VipNameColorFlag)
                 ? CS2MenuManager.API.Enum.DisableOption.None

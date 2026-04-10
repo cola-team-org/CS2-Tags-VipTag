@@ -2,8 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Core.Translations;
-using CounterStrikeSharp.API.Modules.Utils;
 
 using CS2MenuManager.API.Enum;
 using CS2MenuManager.API.Menu;
@@ -124,21 +122,19 @@ public sealed class MenuManager(
         menu.Display(player, 0);
     }
 
-    public void CreateMenuWithColors(CCSPlayerController? player, int type, WasdMenu? parentMenu)
+    public delegate void OnColorSelected(string color, TagSettings tagSettings);
+
+    public void CreateMenuWithColors(
+        CCSPlayerController? player,
+        string menuTitle,
+        OnColorSelected onColorSelected,
+        WasdMenu? parentMenu)
     {
         if (player == null) return;
         if (!TryGetModel(player, out _))
             return;
 
-        WasdMenu menu = type switch
-        {
-            1 => new(plugin.Localizer["TagColorMenu"], plugin),
-            2 => new(plugin.Localizer["ChatColorMenu"], plugin),
-            3 => new(plugin.Localizer["NameColorMenu"], plugin),
-            _ => new(plugin.Localizer["TagsMenu"], plugin)
-        };
-
-        menu.PrevMenu = parentMenu;
+        var menu = new WasdMenu(menuTitle, plugin) { PrevMenu = parentMenu };
 
         foreach (var color in TagColors.Colors)
         {
@@ -154,26 +150,8 @@ public sealed class MenuManager(
                         return;
                     }
 
-                    switch (type)
-                    {
-                        case 1:
-                            m.TagColor = color;
-                            player.PrintToChat($"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewTagColor", color]}".ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
-                            break;
-
-                        case 2:
-                            m.ChatColor = color;
-                            player.PrintToChat($"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewChatColor", color]}".ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
-                            break;
-
-                        case 3:
-                            m.NameColor = color;
-                            player.PrintToChat($"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewNameColor", color]}".ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
-                            break;
-                    }
-
+                    onColorSelected(color, m);
                     tagsManager.ApplyTags(player, m);
-
                     o.PostSelectAction = PostSelectAction.Nothing;
                 }
             );
