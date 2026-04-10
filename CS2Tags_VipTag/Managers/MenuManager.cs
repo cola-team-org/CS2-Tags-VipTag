@@ -140,18 +140,9 @@ public sealed class MenuManager(
 
         menu.PrevMenu = parentMenu;
 
-        foreach (var color in plugin.Colors)
+        foreach (var color in TagColors.Colors)
         {
-            var hex = color switch
-            {
-                "TeamColor" => player.Team switch
-                {
-                    CsTeam.CounterTerrorist => PluginUtilities.FromNameToHex("CTBlue"),
-                    CsTeam.Terrorist => PluginUtilities.FromNameToHex("Orange"),
-                    _ => null,
-                },
-                _ => PluginUtilities.FromNameToHex(color),
-            } ?? "#FFFFFF";
+            var hex = TagColors.ComputeColorHex(color, player.Team);
 
             menu.AddItem(
                 $"<font color='{hex}'><b>{color}</b></font>",
@@ -188,7 +179,7 @@ public sealed class MenuManager(
             );
         }
 
-        menu.Display(player!, 0);
+        menu.Display(player, 0);
     }
 
 

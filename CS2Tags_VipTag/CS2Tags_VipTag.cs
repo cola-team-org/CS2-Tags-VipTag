@@ -16,11 +16,6 @@ public class VipTagsPlugin(IServiceProvider serviceProvider) : BasePlugin, IPlug
     public override string ModuleAuthor => "Letaryat";
     public override string ModuleDescription => "Tag change for vip players";
     public required VipTagsConfig Config { get; set; }
-
-    internal readonly List<string> Colors =
-        [
-        "TeamColor", "White", "DarkRed", "Green", "LightYellow", "LightBlue", "Olive", "Lime", "Red", "LightPurple", "Purple", "Grey", "Yellow", "Gold", "Silver", "Blue","DarkBlue", "BlueGrey", "Magenta", "LightRed", "Orange"
-        ];
     public override void Load(bool hotReload)
     {
         serviceProvider.GetRequiredService<EventManager>().InitializeEvents();
