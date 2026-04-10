@@ -70,7 +70,7 @@ public class EventManager(
 
                         if (model is null or { Visibility: false }) return;
 
-                        tagsManager.SetEverythingTagRelated(player, 0);
+                        tagsManager.ApplyTags(player, model);
                     });
 
                 }
@@ -135,7 +135,7 @@ public class EventManager(
         var user = await databaseManager.FetchPlayerInfo(steamid);
         if (user == null) return;
 
-        playerModelCache.Set(steamid, new PlayerModel
+        playerModelCache.Set(steamid, new TagSettings
         {
             SteamId = user!.SteamId,
             Tag = user.Tag,

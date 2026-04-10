@@ -16,6 +16,7 @@ public sealed class CommandManager(
     ILogger<CommandManager> logger,
     IStringLocalizer localizer,
     MenuManager menuManager,
+    TagsManager tagsManager,
     PlayerModelCache playerModelCache)
 {
     public void InitializeCommands()
@@ -30,20 +31,11 @@ public sealed class CommandManager(
         if (player == null || player.IsBot || player.IsHLTV) return;
         if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipSetTagFlag))
         {
-            player!.PrintToChat($"{localizer["Prefix"]}{localizer["NoPermissions"]}");
+            player.PrintToChat($"{localizer["Prefix"]}{localizer["NoPermissions"]}");
             return;
         }
 
-        //var arg = commandInfo.GetArg(1);
-
-        string arg = "";
-
-        for (int i = 1; i < commandInfo.ArgCount; i++)
-        {
-            arg += commandInfo.GetArg(i) + " ";
-        }
-
-        arg = arg.TrimEnd();
+        var arg = commandInfo.ArgString.Trim();
 
         if (arg.Length > 50)
         {
@@ -58,7 +50,7 @@ public sealed class CommandManager(
 
             if (model is null)
             {
-                model = playerModelCache.Set(player.GetAuthorizedSteamId(), new PlayerModel
+                model = playerModelCache.Set(player.GetAuthorizedSteamId(), new TagSettings
                 {
                     SteamId = player.GetAuthorizedSteamId(),
                     Tag = arg,
@@ -75,22 +67,7 @@ public sealed class CommandManager(
                 model.Tag = arg;
             }
 
-            if (AdminManager.PlayerHasPermissions(player, plugin.Config.VipScoreboardFlag))
-            {
-                plugin.TagApi?.SetAttribute(player, TagsApi.Tags.TagType.ScoreTag, newtag);
-            }
-            if (AdminManager.PlayerHasPermissions(player, plugin.Config.VipChatFlag))
-            {
-                if (model.TagColor == null)
-                {
-                    plugin.TagApi?.SetAttribute(player!, TagsApi.Tags.TagType.ChatTag, $"{model.Tag} ");
-                }
-                else
-                {
-                    plugin.TagApi?.SetAttribute(player, TagsApi.Tags.TagType.ChatTag, $"{{{model.TagColor}}}{arg} ");
-                }
-            }
-
+            tagsManager.ApplyTags(player, model);
             player.PrintToChat($"{localizer["Prefix"]}{localizer["TagSet", arg]}");
         }
         catch (Exception ex)
@@ -105,7 +82,7 @@ public sealed class CommandManager(
         if (player == null || player.IsBot || player.IsHLTV) return;
         if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipBaseFlag))
         {
-            player!.PrintToChat($"{localizer["Prefix"]}{localizer["NoPermissions"]}");
+            player.PrintToChat($"{localizer["Prefix"]}{localizer["NoPermissions"]}");
             return;
         }
         /*

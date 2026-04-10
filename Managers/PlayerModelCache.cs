@@ -6,15 +6,15 @@ namespace VipTags.Managers;
 
 public sealed class PlayerModelCache
 {
-    private readonly ConcurrentDictionary<ulong, PlayerModel> _players = new();
+    private readonly ConcurrentDictionary<ulong, TagSettings> _players = new();
 
-    public IEnumerable<PlayerModel> Players => _players.Values;
+    public IEnumerable<TagSettings> Players => _players.Values;
 
-    public PlayerModel? Get(ulong steamId) => _players.GetValueOrDefault(steamId);
+    public TagSettings? Get(ulong steamId) => _players.GetValueOrDefault(steamId);
 
-    public PlayerModel Set(ulong steamId, PlayerModel playerModel)
+    public TagSettings Set(ulong steamId, TagSettings tagSettings)
     {
-        return _players[steamId] = playerModel;
+        return _players[steamId] = tagSettings;
     }
 
     public void Clear(ulong steamId)

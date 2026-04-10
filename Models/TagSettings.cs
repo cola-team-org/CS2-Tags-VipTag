@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace VipTags.Models;
 
-public class PlayerModel // TODO: why so nullable?
+public class TagSettings // TODO: why so nullable?
 {
     [Column("steamid")]
     public required ulong SteamId { get; set; }
@@ -14,6 +14,7 @@ public class PlayerModel // TODO: why so nullable?
     public string? NameColor { get; set; }
     [Column("chatcolor")]
     public string? ChatColor { get; set; }
+    // TODO: remove below
     [Column("visibility")]
     public bool? Visibility { get; set; }
     [Column("chatvisibility")]

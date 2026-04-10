@@ -1,98 +1,65 @@
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Admin;
+
+using TagsApi;
+
+using VipTags.Models;
 
 using static TagsApi.Tags;
 
 namespace VipTags.Managers;
 
-public sealed class TagsManager(VipTagsPlugin plugin, PlayerModelCache playerModelCache)
+public sealed class TagsManager
 {
-    public void SetEverythingTagRelated(CCSPlayerController player, int mode)
+    private ITagApi? _tagApiCache;
+
+    private ITagApi TagApi
     {
-        if (player?.AuthorizedSteamID == null)
-            return;
-
-        var model = playerModelCache.Get(player.GetAuthorizedSteamId());
-
-        if (model is null) return;
-
-        if (AdminManager.PlayerHasPermissions(player, plugin.Config.VipScoreboardFlag))
+        get
         {
-            if (mode == 1 || model.ScoreVisibility == true)
-                plugin.TagApi?.SetAttribute(player, TagType.ScoreTag, model.Tag);
-            else
-                plugin.TagApi?.ResetAttribute(player, TagType.ScoreTag);
-        }
-        else
-        {
-            plugin.TagApi?.ResetAttribute(player, TagType.ScoreTag);
-        }
+            _tagApiCache ??= ITagApi.Capability.Get() ?? throw new InvalidOperationException("Tags API not found!");
 
-        // CHAT TAG
-        if (AdminManager.PlayerHasPermissions(player, plugin.Config.VipChatFlag))
-        {
-            if (mode == 1 || model.ChatVisibility == true)
-                SetChatTag(player);
-            else
-                plugin.TagApi?.ResetAttribute(player, TagType.ChatTag);
+            return _tagApiCache;
         }
-        else
-        {
-            plugin.TagApi?.ResetAttribute(player, TagType.ChatTag);
-        }
-
-        SetNameColor(player);
-        SetChatColor(player);
     }
 
-
-
-    public void SetChatTag(CCSPlayerController player)
+    public void ApplyTags(CCSPlayerController player, TagSettings settings)
     {
-        if (player.AuthorizedSteamID == null)
-            return;
+        // TODO: compute permissions somewhere
+        // TODO: run in server frame?
+        TagApi.ResetAttribute(player, TagType.ScoreTag | TagType.ChatTag | TagType.NameColor | TagType.ChatColor);
 
-        var model = playerModelCache.Get(player.GetAuthorizedSteamId());
-
-        if (model is null) return;
-
-        if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipTagColorFlag) || model.TagColor == null)
-            plugin.TagApi?.SetAttribute(player, TagType.ChatTag, $"{model.Tag} ");
-        else
-            plugin.TagApi?.SetAttribute(player, TagType.ChatTag, $"{{{model.TagColor}}}{model.Tag} ");
-    }
-
-
-    private void SetNameColor(CCSPlayerController player)
-    {
-        if (player.AuthorizedSteamID == null)
-            return;
-
-        var model = playerModelCache.Get(player.GetAuthorizedSteamId());
-
-        if (model is null) return;
-
-        if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipNameColorFlag) || model.NameColor == null)
+        if (settings.Visibility != true)
         {
-            plugin.TagApi?.ResetAttribute(player, TagType.NameColor);
             return;
         }
 
-        plugin.TagApi?.SetAttribute(player, TagType.NameColor, $"{{{model.NameColor}}}");
-    }
-
-    private void SetChatColor(CCSPlayerController player)
-    {
-        var model = playerModelCache.Get(player.GetAuthorizedSteamId());
-
-        if (model is null) return;
-
-        if (!AdminManager.PlayerHasPermissions(player, plugin.Config.VipChatColorFlag) || model.ChatColor == null)
+        if (settings.Tag is not null)
         {
-            plugin.TagApi?.ResetAttribute(player, TagType.ChatColor);
-            return;
+            var colorPrefix = settings.TagColor is not null ? $"{{{settings.TagColor}}}" : "";
+            var tagWithColor = $"{colorPrefix}{settings.Tag} ";
+
+            if (settings.ChatVisibility == true)
+            {
+                TagApi.SetAttribute(player, TagType.ChatTag, tagWithColor);
+            }
+
+            if (settings.ScoreVisibility == true)
+            {
+                TagApi.SetAttribute(player, TagType.ScoreTag, tagWithColor);
+            }
         }
 
-        plugin.TagApi?.SetAttribute(player, TagType.ChatColor, $"{{{model.ChatColor}}}");
+
+
+        SetColorIfPresent(player, TagType.NameColor,  settings.NameColor);
+        SetColorIfPresent(player, TagType.ChatColor,  settings.ChatColor);
+    }
+
+    private void SetColorIfPresent(CCSPlayerController player, TagType type, string? color)
+    {
+        if (color is not null)
+        {
+            TagApi.SetAttribute(player, type, $"{{{color}}}");
+        }
     }
 }

@@ -1,5 +1,3 @@
-using CounterStrikeSharp.API.Core;
-
 using Dapper;
 
 using Microsoft.Extensions.Logging;
@@ -49,7 +47,6 @@ public sealed class DatabaseManager(
         catch (Exception ex)
         {
             logger.LogInformation(ex, "Error while trying to connect to database");
-            return;
         }
     }
 
@@ -70,37 +67,6 @@ public sealed class DatabaseManager(
 
         logger.LogInformation("Player {SteamID} does not exists", steamId);
         return false;
-    }
-
-    public async Task AddTag(CCSPlayerController player, string tag)
-    {
-        try
-        {
-            ulong steamId = 0;
-            await Task.Run(() =>
-            {
-                steamId = player.AuthorizedSteamID!.SteamId64;
-            });
-            var userExists = await UserExist(steamId);
-            await using var connection = await CreateDbConnection();
-            if (userExists)
-            {
-                logger.LogInformation($"User exists! Updating tag!");
-                string sqlUpdate = "UPDATE `VipTags_Players` SET `Tag` = @tag WHERE `SteamID` = @SteamID";
-                await connection.ExecuteAsync(sqlUpdate, new { SteamID = steamId, tag });
-                return;
-            }
-
-            string sqlInsert =
-                "INSERT INTO `VipTags_Players` (`SteamID`, `Tag`, `Visibility`, `ChatVisibility`, `ScoreVisibility`) VALUES (@SteamID, @tag, true, true, true)";
-            await connection.ExecuteAsync(sqlInsert, new { SteamID = steamId, tag });
-        }
-        catch (Exception ex)
-        {
-            logger.LogInformation(ex, "AddTag failed");
-        }
-
-        return;
     }
 
     public async Task SaveTags(ulong steamId)
@@ -189,50 +155,12 @@ public sealed class DatabaseManager(
         {
             logger.LogInformation(err, "SaveAllTags failed");
         }
-
-        return;
     }
 
-    public async Task ChangeColor(CCSPlayerController player, string color, int type)
-    {
-        var steamId = player!.AuthorizedSteamID!.SteamId64;
-        var userExists = await UserExist(steamId);
-        string? type1 = null;
-        switch (type)
-        {
-            case 1:
-                type1 = "TagColor";
-                break;
-            case 2:
-                type1 = "ChatColor";
-                break;
-            case 3:
-                type1 = "NameColor";
-                break;
-        }
-
-        try
-        {
-            await using var connection = await CreateDbConnection();
-            if (userExists)
-            {
-                logger.LogInformation("User exists! Updating color - {Type}!", type);
-                string sqlUpdate = $"UPDATE `VipTags_Players` SET {type1} = @color WHERE `SteamID` = @SteamID";
-                await connection.ExecuteAsync(sqlUpdate, new { color, SteamID = steamId });
-                return;
-            }
-
-            player.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["SetupTag"]}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogInformation(ex, "ChangeColor Method failed");
-        }
-    }
-
-    public async Task<PlayerModel?> FetchPlayerInfo(ulong steamId)
+    public async Task<TagSettings?> FetchPlayerInfo(ulong steamId)
     {
         await using var connection = await CreateDbConnection();
+        // TODO: do in one call....
         var userExists = await UserExist(steamId);
         try
         {
@@ -243,7 +171,7 @@ public sealed class DatabaseManager(
             }
 
             string sqlSelect = $"SELECT * FROM `VipTags_Players` WHERE `SteamID` = {steamId}";
-            var user = await connection.QueryFirstOrDefaultAsync<PlayerModel>(sqlSelect);
+            var user = await connection.QueryFirstOrDefaultAsync<TagSettings>(sqlSelect);
             return user;
         }
         catch (Exception ex)

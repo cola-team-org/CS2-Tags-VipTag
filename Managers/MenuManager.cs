@@ -11,8 +11,6 @@ using CS2MenuManager.API.Menu;
 using VipTags.Models;
 using VipTags.Utilities;
 
-using static TagsApi.Tags;
-
 namespace VipTags.Managers;
 
 public sealed class MenuManager(
@@ -20,7 +18,7 @@ public sealed class MenuManager(
     TagsManager tagsManager,
     PlayerModelCache playerModelCache)
 {
-    private bool TryGetModel(CCSPlayerController player, [NotNullWhen(true)] out PlayerModel? model)
+    private bool TryGetModel(CCSPlayerController player, [NotNullWhen(true)] out TagSettings? model)
     {
         if (player.AuthorizedSteamID == null || playerModelCache.Get(player.AuthorizedSteamID.SteamId64) is not { } m)
         {
@@ -32,6 +30,7 @@ public sealed class MenuManager(
         return true;
     }
 
+    // TODO: replace with "reset tag" options
     public void CreateDisableMenu(CCSPlayerController player, WasdMenu? parentMenu)
     {
         if (!TryGetModel(player, out var model))
@@ -52,11 +51,10 @@ public sealed class MenuManager(
                 }
 
                 m.Visibility = !(m.Visibility ?? false);
-                plugin.TagApi?.SetPlayerVisibility(p, m.Visibility ?? true);
+                tagsManager.ApplyTags(player, model);
 
                 if (m.Visibility == true)
                 {
-                    tagsManager.SetEverythingTagRelated(p, 1);
                     p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["Toggled"]}");
                 }
                 else
@@ -80,15 +78,14 @@ public sealed class MenuManager(
                 }
 
                 m.ScoreVisibility = !(m.ScoreVisibility ?? false);
+                tagsManager.ApplyTags(player, m);
 
                 if (m.ScoreVisibility == true)
                 {
-                    plugin.TagApi?.SetAttribute(p, TagType.ScoreTag, m.Tag);
                     p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["ToggledScoreTag"]}");
                 }
                 else
                 {
-                    plugin.TagApi?.ResetAttribute(p, TagType.ScoreTag);
                     p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["UnToggledScoreTag"]}");
                 }
 
@@ -108,15 +105,14 @@ public sealed class MenuManager(
                 }
 
                 m.ChatVisibility = !(m.ChatVisibility ?? false);
+                tagsManager.ApplyTags(player, m);
 
                 if (m.ChatVisibility == true)
                 {
-                    tagsManager.SetChatTag(p);
                     p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["ToggledChatTag"]}");
                 }
                 else
                 {
-                    plugin.TagApi?.ResetAttribute(p, TagType.ChatTag);
                     p.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["UnToggledChatTag"]}");
                 }
 
@@ -172,21 +168,20 @@ public sealed class MenuManager(
                         case 1:
                             m.TagColor = color;
                             player.PrintToChat($"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewTagColor", color]}".ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
-                            tagsManager.SetChatTag(p);
                             break;
 
                         case 2:
                             m.ChatColor = color;
                             player.PrintToChat($"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewChatColor", color]}".ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
-                            plugin.TagApi?.SetAttribute(p, TagType.ChatColor, $"{{{color}}}");
                             break;
 
                         case 3:
                             m.NameColor = color;
                             player.PrintToChat($"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewNameColor", color]}".ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
-                            plugin.TagApi?.SetAttribute(p, TagType.NameColor, $"{{{color}}}");
                             break;
                     }
+
+                    tagsManager.ApplyTags(player, m);
 
                     o.PostSelectAction = PostSelectAction.Nothing;
                 }
