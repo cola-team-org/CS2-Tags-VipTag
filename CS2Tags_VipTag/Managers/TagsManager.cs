@@ -64,7 +64,7 @@ public sealed class TagsManager(
         }
 
         var authorizedSettings = ApplyAuthorization(settings, authorizationContext);
-        playerModelCache.Set(authorizationContext.SteamId, authorizedSettings);
+        await ApplyTagsForPlayer(authorizationContext, authorizedSettings);
     }
 
     public async Task ReloadAllSettings()
@@ -88,12 +88,37 @@ public sealed class TagsManager(
     {
         logger.LogInformation("Installed message pre-processor into Tags API");
         TagApi.OnMessageProcessPre += MessagePreProcessor;
+        TagApi.OnTagsUpdatedPost += TagsUpdated;
     }
 
     public void Uninitialize()
     {
         logger.LogInformation("Uninstalled message pre-processor from Tags API");
         TagApi.OnMessageProcessPre -= MessagePreProcessor;
+        TagApi.OnTagsUpdatedPost -= TagsUpdated;
+    }
+
+    private void TagsUpdated(CCSPlayerController player, Tag tag)
+    {
+        // KNOWN ISSUE: This does not trigger on admin/tag reload.
+        if (!plugin.Config.CustomTagOnScoreboard) return;
+
+        var steamId = player.AuthorizedSteamID?.SteamId64;
+
+        if (steamId is null) return;
+
+        var settings = playerModelCache.Get(steamId.Value);
+
+        if (settings?.Tag is null) return;
+
+        if (tag.ScoreTag == settings.Tag)
+        {
+            return;
+        }
+
+        // TODO: perhaps attempt to detect cycles?
+        logger.LogInformation("Scoreboard tag of player {SteamId} was corrected from {OldValue} to {NewValue}", steamId, tag.ScoreTag, settings.Tag);
+        TagApi.SetAttribute(player, TagType.ScoreTag, settings.Tag);
     }
 
     private HookResult MessagePreProcessor(MessageProcess messageProcess)
@@ -140,47 +165,28 @@ public sealed class TagsManager(
 
     private static string? AddSpaceToEnd(string? text) => text is null ? null : $"{text} ";
 
-    // private async Task ApplySettings(CCSPlayerController player, TagSettings settings)
-    // {
-    //     await Server.NextFrameAsync(() =>
-    //     {
-    //         TagApi.ResetAttribute(player, TagType.ScoreTag | TagType.ChatTag | TagType.NameColor | TagType.ChatColor);
-    //
-    //         if (settings.Tag is not null)
-    //         {
-    //             var colorPrefix = settings.TagColor is not null ? $"{{{settings.TagColor}}}" : "";
-    //             var tagWithColor = $"{colorPrefix}{settings.Tag}{{White}} ";
-    //             TagApi.SetAttribute(player, TagType.ChatTag, tagWithColor);
-    //             TagApi.SetAttribute(player, TagType.ScoreTag, settings.Tag);
-    //         }
-    //
-    //         SetColorIfPresent(player, TagType.NameColor,  settings.NameColor);
-    //         SetColorIfPresent(player, TagType.ChatColor,  settings.ChatColor);
-    //     });
-    // }
-    //
-    // private void SetColorIfPresent(CCSPlayerController player, TagType type, string? color)
-    // {
-    //     if (color is not null)
-    //     {
-    //         TagApi.SetAttribute(player, type, $"{{{color}}}");
-    //     }
-    // }
-    // private async Task ResetSettings(CCSPlayerController player)
-    // {
-    //     await Server.NextFrameAsync(() =>
-    //     {
-    //         TagApi.ResetAttribute(player, TagType.ScoreTag | TagType.ChatTag | TagType.NameColor | TagType.ChatColor);
-    //     });
-    // }
+    private async Task SetScoreTag(CCSPlayerController player, string? scoreTag)
+    {
+        await Server.NextFrameAsync(() =>
+        {
+            if (scoreTag is not null)
+            {
+                TagApi.SetAttribute(player, TagType.ScoreTag, scoreTag);
+            }
+            else
+            {
+                TagApi.ResetAttribute(player, TagType.ScoreTag);
+            }
+        });
+    }
 
     private async Task UpdateAndApply(AuthorizationContext authorizationContext, Action<TagSettings> action)
     {
         var model = playerModelCache.Get(authorizationContext.SteamId) ??
-                    playerModelCache.Set(authorizationContext.SteamId,
-                        new TagSettings { SteamId = authorizationContext.SteamId });
+                    new TagSettings { SteamId = authorizationContext.SteamId };
         action(model);
         await databaseManager.SaveTags(model);
+        await ApplyTagsForPlayer(authorizationContext, model);
     }
 
     private TagSettings ApplyAuthorization(TagSettings settings, AuthorizationContext authorizationContext)
@@ -202,5 +208,17 @@ public sealed class TagsManager(
         }
 
         return newSettings;
+    }
+
+    private async Task ApplyTagsForPlayer(AuthorizationContext authorizationContext, TagSettings settings)
+    {
+        logger.LogInformation("Applying tags {Tags} for player {SteamId}", settings, settings.SteamId);
+
+        playerModelCache.Set(authorizationContext.SteamId, settings);
+
+        if (plugin.Config.CustomTagOnScoreboard)
+        {
+            await SetScoreTag(authorizationContext.Player, settings.Tag);
+        }
     }
 }

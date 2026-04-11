@@ -15,5 +15,6 @@ public sealed class VipTagsConfig : BasePluginConfig
     [JsonPropertyName("DBUsername")] public string DbUsername { get; set; } = "root";
     [JsonPropertyName("DBName")] public string DbName { get; set; } = "db_";
     [JsonPropertyName("DBPassword")] public string DbPassword { get; set; } = "123";
+    public bool CustomTagOnScoreboard { get; set; } = true;
 
 }
