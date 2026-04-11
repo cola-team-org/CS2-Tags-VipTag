@@ -1,5 +1,6 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Modules.Utils;
 
 using Microsoft.Extensions.Logging;
 
@@ -78,7 +79,6 @@ public sealed class TagsManager(
 
         var authorizedSettings = ApplyAuthorization(settings, authorizationContext);
         playerModelCache.Set(authorizationContext.SteamId, authorizedSettings);
-        await ApplySettings(authorizationContext.Player, authorizedSettings);
     }
 
     public async Task ReloadAllSettings()
@@ -98,25 +98,87 @@ public sealed class TagsManager(
         }
     }
 
-    // TODO: consider using message processor instead
-    private async Task ApplySettings(CCSPlayerController player, TagSettings settings)
+    public void Initialize()
     {
-        await Server.NextFrameAsync(() =>
-        {
-            TagApi.ResetAttribute(player, TagType.ScoreTag | TagType.ChatTag | TagType.NameColor | TagType.ChatColor);
-
-            if (settings.Tag is not null)
-            {
-                var colorPrefix = settings.TagColor is not null ? $"{{{settings.TagColor}}}" : "";
-                var tagWithColor = $"{colorPrefix}{settings.Tag}{{White}} ";
-                TagApi.SetAttribute(player, TagType.ChatTag, tagWithColor);
-                TagApi.SetAttribute(player, TagType.ScoreTag, settings.Tag);
-            }
-
-            SetColorIfPresent(player, TagType.NameColor,  settings.NameColor);
-            SetColorIfPresent(player, TagType.ChatColor,  settings.ChatColor);
-        });
+        logger.LogInformation("Installed message pre-processor into Tags API");
+        TagApi.OnMessageProcessPre += MessagePreProcessor;
     }
+
+    public void Uninitialize()
+    {
+        logger.LogInformation("Uninstalled message pre-processor from Tags API");
+        TagApi.OnMessageProcessPre -= MessagePreProcessor;
+    }
+
+    private HookResult MessagePreProcessor(MessageProcess messageProcess)
+    {
+        var steamId = messageProcess.Player.AuthorizedSteamID?.SteamId64;
+
+        if (steamId is null) return HookResult.Continue;
+
+        var settings = playerModelCache.Get(steamId.Value);
+
+        if (settings is null) return HookResult.Continue;
+
+        messageProcess.Tag.ChatColor = WrapColor(settings.ChatColor) ?? messageProcess.Tag.ChatColor;
+        messageProcess.Tag.NameColor = WrapColor(settings.NameColor) ?? messageProcess.Tag.NameColor;
+        messageProcess.Tag.ChatTag = settings.Tag ?? messageProcess.Tag.ChatTag;
+
+        if (settings.TagColor is not null && messageProcess.Tag.ChatTag is not null)
+        {
+            var colorPrefix = settings.TagColor is not null ? $"{{{settings.TagColor}}}" : "";
+            var tagWithColor = $"{colorPrefix}{RemoveColorTags(messageProcess.Tag.ChatTag)}{{TeamColor}}";
+            messageProcess.Tag.ChatTag = tagWithColor;
+        }
+
+        return HookResult.Continue;
+    }
+
+    private static readonly string[] Colors = typeof(ChatColors).GetFields().Select(f => f.Name).ToArray();
+
+    private static string RemoveColorTags(string message)
+    {
+        var modifiedValue = message;
+        foreach (var name in Colors)
+        {
+            string pattern = $"{{{name}}}";
+            if (modifiedValue.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            {
+                modifiedValue = modifiedValue.Replace(pattern, string.Empty, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        return modifiedValue.Equals(message) ? message : modifiedValue;
+    }
+
+    private static string? WrapColor(string? color) => color is null ? null : $"{{{color}}}";
+
+    // private async Task ApplySettings(CCSPlayerController player, TagSettings settings)
+    // {
+    //     await Server.NextFrameAsync(() =>
+    //     {
+    //         TagApi.ResetAttribute(player, TagType.ScoreTag | TagType.ChatTag | TagType.NameColor | TagType.ChatColor);
+    //
+    //         if (settings.Tag is not null)
+    //         {
+    //             var colorPrefix = settings.TagColor is not null ? $"{{{settings.TagColor}}}" : "";
+    //             var tagWithColor = $"{colorPrefix}{settings.Tag}{{White}} ";
+    //             TagApi.SetAttribute(player, TagType.ChatTag, tagWithColor);
+    //             TagApi.SetAttribute(player, TagType.ScoreTag, settings.Tag);
+    //         }
+    //
+    //         SetColorIfPresent(player, TagType.NameColor,  settings.NameColor);
+    //         SetColorIfPresent(player, TagType.ChatColor,  settings.ChatColor);
+    //     });
+    // }
+    //
+    // private void SetColorIfPresent(CCSPlayerController player, TagType type, string? color)
+    // {
+    //     if (color is not null)
+    //     {
+    //         TagApi.SetAttribute(player, type, $"{{{color}}}");
+    //     }
+    // }
 
     private async Task ResetSettings(CCSPlayerController player)
     {
@@ -126,14 +188,6 @@ public sealed class TagsManager(
         });
     }
 
-    private void SetColorIfPresent(CCSPlayerController player, TagType type, string? color)
-    {
-        if (color is not null)
-        {
-            TagApi.SetAttribute(player, type, $"{{{color}}}");
-        }
-    }
-
     private async Task UpdateAndApply(AuthorizationContext authorizationContext, Action<TagSettings> action)
     {
         var model = playerModelCache.Get(authorizationContext.SteamId) ??
@@ -141,7 +195,6 @@ public sealed class TagsManager(
                         new TagSettings { SteamId = authorizationContext.SteamId });
         action(model);
         await databaseManager.SaveTags(model);
-        await ApplySettings(authorizationContext.Player, model);
     }
 
     private TagSettings ApplyAuthorization(TagSettings settings, AuthorizationContext authorizationContext)

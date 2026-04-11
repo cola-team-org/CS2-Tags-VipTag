@@ -1,13 +1,10 @@
 ﻿using CounterStrikeSharp.API.Core;
 
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 using VipTags.Managers;
 
 namespace VipTags;
-
-// TODO: follow up on reload admins during map breaking tags.
 
 public sealed class VipTagsPlugin(IServiceProvider serviceProvider) : BasePlugin, IPluginConfig<VipTagsConfig>
 {
@@ -21,14 +18,21 @@ public sealed class VipTagsPlugin(IServiceProvider serviceProvider) : BasePlugin
         serviceProvider.GetRequiredService<EventManager>().InitializeEvents();
         serviceProvider.GetRequiredService<CommandManager>().InitializeCommands();
 
-        Logger.LogInformation("CS2Tags_VipTag - Loaded");
-
         Task.Run(async () =>
         {
             await serviceProvider.GetRequiredService<DatabaseManager>().InitializeConnection();
             await serviceProvider.GetRequiredService<TagsManager>().ReloadAllSettings();
         });
+    }
 
+    public override void OnAllPluginsLoaded(bool hotReload)
+    {
+        serviceProvider.GetRequiredService<TagsManager>().Initialize();
+    }
+
+    public override void Unload(bool hotReload)
+    {
+        serviceProvider.GetRequiredService<TagsManager>().Uninitialize();
     }
 
     public void OnConfigParsed(VipTagsConfig config)
