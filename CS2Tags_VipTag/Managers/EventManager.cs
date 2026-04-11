@@ -17,7 +17,7 @@ public class EventManager(
     private HookResult OnPlayerConnect(EventPlayerConnectFull @event, GameEventInfo info)
     {
         var player = @event.Userid;
-        if (player == null || player.IsBot || player.IsHLTV || player.AuthorizedSteamID == null)
+        if (!player.IsRealAuthorizedPerson())
             return HookResult.Continue;
 
         var authorizationContext = authorizationComputer.ComputeAuthorizationContext(player);

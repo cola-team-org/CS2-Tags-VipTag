@@ -12,7 +12,6 @@ public sealed class VipTagsServices : IPluginServiceCollection<VipTagsPlugin>
     public void ConfigureServices(IServiceCollection serviceCollection) => serviceCollection
         .AddTransient<EventManager>()
         .AddTransient<CommandManager>()
-        .AddTransient<MenuManager>()
         .AddTransient<TagsManager>()
         .AddTransient<DatabaseManager>()
         .AddTransient<AuthorizationComputer>()

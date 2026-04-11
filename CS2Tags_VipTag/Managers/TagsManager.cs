@@ -1,6 +1,8 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 
+using Microsoft.Extensions.Logging;
+
 using TagsApi;
 
 using VipTags.Authorization;
@@ -11,6 +13,7 @@ using static TagsApi.Tags;
 namespace VipTags.Managers;
 
 public sealed class TagsManager(
+    ILogger<TagsManager> logger,
     DatabaseManager databaseManager,
     AuthorizationComputer authorizationComputer,
     PlayerModelCache playerModelCache)
@@ -29,21 +32,29 @@ public sealed class TagsManager(
 
     public async Task UpdateTag(AuthorizationContext authorizationContext, string tag)
     {
+        if (!authorizationContext.CanSetCustomTag)
+            throw new UnauthorizedAccessException("Player does not have permission to update tag");
         await UpdateAndApply(authorizationContext, settings => settings.Tag = tag);
     }
 
     public async Task UpdateTagColor(AuthorizationContext authorizationContext, string color)
     {
+        if (!authorizationContext.CanSetTagColor)
+            throw new UnauthorizedAccessException("Player does not have permission to update tag color");
         await UpdateAndApply(authorizationContext, settings => settings.TagColor = color);
     }
 
     public async Task UpdateNameColor(AuthorizationContext authorizationContext, string color)
     {
+        if (!authorizationContext.CanSetNameColor)
+            throw new UnauthorizedAccessException("Player does not have permission to update name color");
         await UpdateAndApply(authorizationContext, settings => settings.NameColor = color);
     }
 
     public async Task UpdateChatColor(AuthorizationContext authorizationContext, string color)
     {
+        if (!authorizationContext.CanSetChatColor)
+            throw new UnauthorizedAccessException("Player does not have permission to update chat color");
         await UpdateAndApply(authorizationContext, settings => settings.ChatColor = color);
     }
 
@@ -65,8 +76,9 @@ public sealed class TagsManager(
             return;
         }
 
-        playerModelCache.Set(authorizationContext.SteamId, settings);
-        await ApplySettings(authorizationContext.Player, settings);
+        var authorizedSettings = ApplyAuthorization(settings, authorizationContext);
+        playerModelCache.Set(authorizationContext.SteamId, authorizedSettings);
+        await ApplySettings(authorizationContext.Player, authorizedSettings);
     }
 
     public async Task ReloadAllSettings()
@@ -75,14 +87,13 @@ public sealed class TagsManager(
         await Server.NextFrameAsync(() =>
         {
             contexts = CounterStrikeSharp.API.Utilities.GetPlayers()
-                .Where(p => p.AuthorizedSteamID is not null && p is { IsHLTV: false, IsBot: false })
+                .Where(p => p.IsRealAuthorizedPerson())
                 .Select(authorizationComputer.ComputeAuthorizationContext)
                 .ToArray();
         });
 
         foreach (var context in contexts)
         {
-            Console.WriteLine(context.Player.PlayerName);
             await ReloadSettings(context);
         }
     }
@@ -92,7 +103,6 @@ public sealed class TagsManager(
     {
         await Server.NextFrameAsync(() =>
         {
-            // TODO: compute permissions somewhere
             TagApi.ResetAttribute(player, TagType.ScoreTag | TagType.ChatTag | TagType.NameColor | TagType.ChatColor);
 
             if (settings.Tag is not null)
@@ -133,5 +143,26 @@ public sealed class TagsManager(
         action(model);
         await databaseManager.SaveTags(model);
         await ApplySettings(authorizationContext.Player, model);
+    }
+
+    private TagSettings ApplyAuthorization(TagSettings settings, AuthorizationContext authorizationContext)
+    {
+        var newSettings = new TagSettings
+        {
+            SteamId = settings.SteamId,
+            Tag = authorizationContext.CanSetCustomTag ? settings.Tag : null,
+            TagColor = authorizationContext.CanSetTagColor ? settings.TagColor : null,
+            NameColor = authorizationContext.CanSetNameColor ? settings.NameColor : null,
+            ChatColor = authorizationContext.CanSetChatColor ? settings.ChatColor : null,
+        };
+
+        if (!settings.Equals(newSettings))
+        {
+            logger.LogWarning(
+                "Tag settings for {SteamId} was changed during authorization from {Before} to {After}",
+                authorizationContext.SteamId, settings, newSettings);
+        }
+
+        return newSettings;
     }
 }

@@ -4,11 +4,13 @@ using CounterStrikeSharp.API.Core.Translations;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Utils;
 
+using CS2MenuManager.API.Enum;
 using CS2MenuManager.API.Menu;
 
 using Microsoft.Extensions.Localization;
 
 using VipTags.Authorization;
+using VipTags.Utilities;
 
 namespace VipTags.Managers;
 
@@ -16,7 +18,6 @@ public sealed class CommandManager(
     VipTagsPlugin plugin,
     AuthorizationComputer authorizationComputer,
     IStringLocalizer localizer,
-    MenuManager menuManager,
     TagsManager tagsManager)
 {
     public void InitializeCommands()
@@ -29,7 +30,7 @@ public sealed class CommandManager(
     [CommandHelper(minArgs: 1, usage: "TagName")]
     private void TagChange(CCSPlayerController? player, CommandInfo commandInfo)
     {
-        if (player == null || player.IsBot || player.IsHLTV) return;
+        if (!player.IsRealAuthorizedPerson()) return;
 
         var authorizationContext = authorizationComputer.ComputeAuthorizationContext(player);
         if (!authorizationContext.CanSetCustomTag)
@@ -56,7 +57,7 @@ public sealed class CommandManager(
 
     private void TagMenu(CCSPlayerController? player, CommandInfo commandInfo)
     {
-        if (player == null || player.IsBot || player.IsHLTV) return;
+        if (!player.IsRealAuthorizedPerson()) return;
 
         var authorizationContext = authorizationComputer.ComputeAuthorizationContext(player);
         if (!authorizationContext.CanSetAnything)
@@ -65,24 +66,11 @@ public sealed class CommandManager(
             return;
         }
 
-        // TODO: Remove SetupTag string
+        var menu = new WasdMenu(localizer["TagsMenu"], plugin);
 
-        var menu = new WasdMenu(localizer["VipMenu"], plugin);
-
-        menu.AddItem($"{localizer["ResetTag"]}", (player, _) => // TODO: add string
-            {
-                Task.Run(async () =>
-                {
-                    await tagsManager.DeleteSettings(authorizationContext);
-                    await player.SafePrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["TagReset"]}".ReplaceColorTags());
-                });
-            },
-            disableOption: authorizationContext.CanSetCustomTag
-                ? CS2MenuManager.API.Enum.DisableOption.None
-                : CS2MenuManager.API.Enum.DisableOption.DisableHideNumber);
         menu.AddItem(localizer["TagColorMenu"], (player, _) =>
             {
-                menuManager.CreateMenuWithColors(
+                CreateMenuWithColors(
                     player,
                     plugin.Localizer["TagColorMenu"], async color =>
                     {
@@ -94,11 +82,11 @@ public sealed class CommandManager(
                     menu);
             },
             disableOption: authorizationContext.CanSetTagColor
-                ? CS2MenuManager.API.Enum.DisableOption.None
-                : CS2MenuManager.API.Enum.DisableOption.DisableHideNumber);
+                ? DisableOption.None
+                : DisableOption.DisableHideNumber);
         menu.AddItem(localizer["ChatColorMenu"], (player, _) =>
             {
-                menuManager.CreateMenuWithColors(
+                CreateMenuWithColors(
                     player,
                     plugin.Localizer["ChatColorMenu"], async color =>
                     {
@@ -109,11 +97,11 @@ public sealed class CommandManager(
                     }, menu);
             },
             disableOption: authorizationContext.CanSetChatColor
-                ? CS2MenuManager.API.Enum.DisableOption.None
-                : CS2MenuManager.API.Enum.DisableOption.DisableHideNumber);
+                ? DisableOption.None
+                : DisableOption.DisableHideNumber);
         menu.AddItem(localizer["NameColorMenu"], (player, _) =>
             {
-                menuManager.CreateMenuWithColors(
+                CreateMenuWithColors(
                     player,
                     plugin.Localizer["NameColorMenu"], async color =>
                     {
@@ -125,9 +113,46 @@ public sealed class CommandManager(
                     menu);
             },
             disableOption: authorizationContext.CanSetNameColor
-                ? CS2MenuManager.API.Enum.DisableOption.None
-                : CS2MenuManager.API.Enum.DisableOption.DisableHideNumber);
+                ? DisableOption.None
+                : DisableOption.DisableHideNumber);
+
+        menu.AddItem($"{localizer["ResetTag"]}", (player, _) =>
+        {
+            Task.Run(async () =>
+            {
+                await tagsManager.DeleteSettings(authorizationContext);
+                await player.SafePrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["TagReset"]}".ReplaceColorTags());
+            });
+        });
+
         menu.Display(player, 0);
     }
 
+    private void CreateMenuWithColors(
+        CCSPlayerController? player,
+        string menuTitle,
+        Func<string, Task> onColorSelected,
+        WasdMenu? parentMenu)
+    {
+        if (player == null) return;
+
+        var menu = new WasdMenu(menuTitle, plugin) { PrevMenu = parentMenu };
+
+        foreach (var color in TagColors.Colors)
+        {
+            var hex = TagColors.ComputeColorHex(color, player.Team);
+
+            var option = menu.AddItem(
+                $"<font color='{hex}'><b>{color}</b></font>",
+                (p, o) =>
+                {
+                    // TODO: check auth?
+                    Task.Run(() => onColorSelected(color));
+                }
+            );
+            option.PostSelectAction = PostSelectAction.Nothing;
+        }
+
+        menu.Display(player, 0);
+    }
 }
