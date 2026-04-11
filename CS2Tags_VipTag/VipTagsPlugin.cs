@@ -23,17 +23,14 @@ public sealed class VipTagsPlugin(IServiceProvider serviceProvider) : BasePlugin
 
         Logger.LogInformation("CS2Tags_VipTag - Loaded");
 
-        Task.Run(() => serviceProvider.GetRequiredService<DatabaseManager>().InitializeConnection());
+        Task.Run(async () =>
+        {
+            await serviceProvider.GetRequiredService<DatabaseManager>().InitializeConnection();
+            await serviceProvider.GetRequiredService<TagsManager>().ReloadAllSettings();
+        });
 
     }
 
-    public override void Unload(bool hotReload)
-    {
-        Logger.LogInformation("CS2Tags_VipTag - Unloaded");
-        // TODO: save right away?
-        _ = serviceProvider.GetRequiredService<DatabaseManager>().SaveAllTags();
-
-    }
     public void OnConfigParsed(VipTagsConfig config)
     {
         Config = config;

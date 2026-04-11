@@ -12,6 +12,7 @@ namespace VipTags.Managers;
 
 public sealed class TagsManager(
     DatabaseManager databaseManager,
+    AuthorizationComputer authorizationComputer,
     PlayerModelCache playerModelCache)
 {
     private ITagApi? _tagApiCache;
@@ -68,6 +69,24 @@ public sealed class TagsManager(
         await ApplySettings(authorizationContext.Player, settings);
     }
 
+    public async Task ReloadAllSettings()
+    {
+        AuthorizationContext[] contexts = [];
+        await Server.NextFrameAsync(() =>
+        {
+            contexts = CounterStrikeSharp.API.Utilities.GetPlayers()
+                .Where(p => p.AuthorizedSteamID is not null && p is { IsHLTV: false, IsBot: false })
+                .Select(authorizationComputer.ComputeAuthorizationContext)
+                .ToArray();
+        });
+
+        foreach (var context in contexts)
+        {
+            Console.WriteLine(context.Player.PlayerName);
+            await ReloadSettings(context);
+        }
+    }
+
     // TODO: consider using message processor instead
     private async Task ApplySettings(CCSPlayerController player, TagSettings settings)
     {
@@ -112,6 +131,7 @@ public sealed class TagsManager(
                     playerModelCache.Set(authorizationContext.SteamId,
                         new TagSettings { SteamId = authorizationContext.SteamId });
         action(model);
+        await databaseManager.SaveTags(model);
         await ApplySettings(authorizationContext.Player, model);
     }
 }

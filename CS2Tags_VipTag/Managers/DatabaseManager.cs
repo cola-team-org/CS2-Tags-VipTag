@@ -10,8 +10,7 @@ namespace VipTags.Managers;
 
 public sealed class DatabaseManager(
     ILogger<DatabaseManager> logger,
-    VipTagsPlugin plugin,
-    PlayerModelCache playerModelCache)
+    VipTagsPlugin plugin)
 {
     public async Task InitializeConnection()
     {
@@ -59,17 +58,6 @@ public sealed class DatabaseManager(
         await connection.ExecuteAsync("DELETE FROM VipTags_Players WHERE SteamID = @steamId", new { steamId });
     }
 
-    public async Task SaveAllTags()
-    {
-        await using var connection = await CreateDbConnection();
-        foreach (var player in playerModelCache.Players)
-        {
-            await SaveTagsInternal(connection, player);
-        }
-
-        logger.LogInformation("All players have been updated / inserted into DB");
-    }
-
     public async Task<TagSettings?> FetchPlayerInfo(ulong steamId)
     {
         await using var connection = await CreateDbConnection();
@@ -80,6 +68,10 @@ public sealed class DatabaseManager(
         if (user is null)
         {
             logger.LogInformation("Player with {SteamID} was not found", steamId);
+        }
+        else
+        {
+            logger.LogInformation("Player with {SteamID} was found", steamId);
         }
 
         return user;
