@@ -14,6 +14,7 @@ using static TagsApi.Tags;
 namespace VipTags.Managers;
 
 public sealed class TagsManager(
+    VipTagsPlugin plugin,
     ILogger<TagsManager> logger,
     DatabaseManager databaseManager,
     AuthorizationComputer authorizationComputer,
@@ -31,32 +32,19 @@ public sealed class TagsManager(
         }
     }
 
-    public async Task UpdateTag(AuthorizationContext authorizationContext, string tag)
+    public async Task UpdateTag(AuthorizationContext authorizationContext, string? tag)
     {
         if (!authorizationContext.CanSetCustomTag)
             throw new UnauthorizedAccessException("Player does not have permission to update tag");
         await UpdateAndApply(authorizationContext, settings => settings.Tag = tag);
     }
 
-    public async Task UpdateTagColor(AuthorizationContext authorizationContext, string color)
+    public async Task UpdateColor(AuthorizationContext authorizationContext, ColorType colorType, string? color)
     {
-        if (!authorizationContext.CanSetTagColor)
+        if (!authorizationContext.CanUpdate(colorType))
             throw new UnauthorizedAccessException("Player does not have permission to update tag color");
-        await UpdateAndApply(authorizationContext, settings => settings.TagColor = color);
-    }
 
-    public async Task UpdateNameColor(AuthorizationContext authorizationContext, string color)
-    {
-        if (!authorizationContext.CanSetNameColor)
-            throw new UnauthorizedAccessException("Player does not have permission to update name color");
-        await UpdateAndApply(authorizationContext, settings => settings.NameColor = color);
-    }
-
-    public async Task UpdateChatColor(AuthorizationContext authorizationContext, string color)
-    {
-        if (!authorizationContext.CanSetChatColor)
-            throw new UnauthorizedAccessException("Player does not have permission to update chat color");
-        await UpdateAndApply(authorizationContext, settings => settings.ChatColor = color);
+        await UpdateAndApply(authorizationContext, settings => settings.UpdateColor(colorType, color));
     }
 
     public async Task DeleteSettings(AuthorizationContext authorizationContext)

@@ -1,5 +1,7 @@
 ﻿using CounterStrikeSharp.API.Core;
 
+using VipTags.Models;
+
 namespace VipTags.Authorization;
 
 public class AuthorizationContext
@@ -11,4 +13,12 @@ public class AuthorizationContext
     public required bool CanSetNameColor { get; init; }
     public required bool CanSetTagColor { get; init; }
     public bool CanSetAnything => CanSetChatColor || CanSetNameColor || CanSetTagColor || CanSetCustomTag;
+
+    public bool CanUpdate(ColorType colorType) => colorType switch
+    {
+        ColorType.TagColor => CanSetTagColor,
+        ColorType.NameColor => CanSetNameColor,
+        ColorType.ChatColor => CanSetChatColor,
+        _ => throw new ArgumentOutOfRangeException(nameof(colorType), colorType, null)
+    };
 }

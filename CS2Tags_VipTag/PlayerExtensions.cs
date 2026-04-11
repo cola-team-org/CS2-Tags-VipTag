@@ -2,14 +2,18 @@
 
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Core.Translations;
+using CounterStrikeSharp.API.Modules.Utils;
 
 namespace VipTags;
 
 internal static class PlayerExtensions
 {
-    public static async Task SafePrintToChat(this CCSPlayerController player, string message)
+    public static async Task SafeColoredPrintToChat(this CCSPlayerController player, string message)
     {
-        await Server.NextFrameAsync(() => player.PrintToChat(message));
+        await Server.NextFrameAsync(() => player.PrintToChat(message
+            .ReplaceColorTags()
+            .Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString())));
     }
 
     public static bool IsRealAuthorizedPerson([NotNullWhen(true)] this CCSPlayerController? player) =>
