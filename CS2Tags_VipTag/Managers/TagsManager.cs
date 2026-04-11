@@ -122,12 +122,11 @@ public sealed class TagsManager(
 
         messageProcess.Tag.ChatColor = WrapColor(settings.ChatColor) ?? messageProcess.Tag.ChatColor;
         messageProcess.Tag.NameColor = WrapColor(settings.NameColor) ?? messageProcess.Tag.NameColor;
-        messageProcess.Tag.ChatTag = settings.Tag ?? messageProcess.Tag.ChatTag;
+        messageProcess.Tag.ChatTag = AddSpaceToEnd(settings.Tag) ?? messageProcess.Tag.ChatTag;
 
         if (settings.TagColor is not null && messageProcess.Tag.ChatTag is not null)
         {
-            var colorPrefix = settings.TagColor is not null ? $"{{{settings.TagColor}}}" : "";
-            var tagWithColor = $"{colorPrefix}{RemoveColorTags(messageProcess.Tag.ChatTag)}{{TeamColor}}";
+            var tagWithColor = $"{{{settings.TagColor}}}{RemoveColorTags(messageProcess.Tag.ChatTag)}{{TeamColor}}";
             messageProcess.Tag.ChatTag = tagWithColor;
         }
 
@@ -152,6 +151,8 @@ public sealed class TagsManager(
     }
 
     private static string? WrapColor(string? color) => color is null ? null : $"{{{color}}}";
+
+    private static string? AddSpaceToEnd(string? text) => text is null ? null : $"{text} ";
 
     // private async Task ApplySettings(CCSPlayerController player, TagSettings settings)
     // {
