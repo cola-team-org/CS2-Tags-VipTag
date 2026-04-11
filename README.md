@@ -12,17 +12,17 @@ This plugin allows to someone with specific permission to set up their own score
 - [CS2MenuManager](https://github.com/schwarper/CS2MenuManager)
 
 ## [📋] Commands:
-- !settag  | Sets up tag. Usage: !settag ExampleTag,
-- !tagmenu | Displays menu,
+- `!settag`  | Sets up tag. Usage: `!settag ExampleTag`,
+- `!tagmenu` | Displays menu,
 
 ## [📋] Functions:
 - Changing scoreboard and chat tag,
 - Changing color of tag, chat text color, name color,
-- Turning on / off the tag,
+- Resetting tags & colors,
 - Storing all data in MySQL database,
 
 ## [📌] Setup
-- Install all dependiencies listed upwards,
+- Install all dependencies listed upwards,
 - Download latest release,
 - Drag files to /plugins/
 - Restart your server,
@@ -31,11 +31,7 @@ This plugin allows to someone with specific permission to set up their own score
 
 ```
 {
-  "Vip_BaseFlag": "@vip/vipbaseflag", // It is mandatory to save data to database and have access to !tagmenu.
   "Vip_VipSetTagFlag": "@vip/vipsettag", // Flag that allows players to set tags. 
-  "Vip_VipToggleMenuFlag": "@vip/viptogglemenu", // Flag that allows players to use Toggle menu in !tagmenu
-  "Vip_ScoreboardFlag": "@vip/scoreboardflag", // Flag that makes scoreboard tag visible
-  "Vip_ChatFlag": "@vip/chatflag", // Flag that makes chat tag visible
   "Vip_TagColorFlag": "@vip/tagcolor", // Flag that allows players to change Tag color
   "Vip_ChatColorFlag": "@vip/chatcolor", // Flag that allows players to change Chat color
   "Vip_NameColorFlag": "@vip/namecolor", // Flag that allows players to change Name color
@@ -44,6 +40,7 @@ This plugin allows to someone with specific permission to set up their own score
   "DBUsername": "", //MySQL Username
   "DBName": "", //MySQL database name
   "DBPassword": "", //MySQL database password
+  "CustomTagOnScoreboard": true, // Whether to show custom tags on the scoreboard
   "ConfigVersion": 1
 }
 ```
