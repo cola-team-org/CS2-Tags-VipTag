@@ -108,8 +108,7 @@ public sealed class TagsManager(
             if (settings.Tag is not null)
             {
                 var colorPrefix = settings.TagColor is not null ? $"{{{settings.TagColor}}}" : "";
-                var tagWithColor = $"{colorPrefix}{settings.Tag} ";
-                // TODO: fix issue with colors bleeding over
+                var tagWithColor = $"{colorPrefix}{settings.Tag}{{White}} ";
                 TagApi.SetAttribute(player, TagType.ChatTag, tagWithColor);
                 TagApi.SetAttribute(player, TagType.ScoreTag, settings.Tag);
             }
