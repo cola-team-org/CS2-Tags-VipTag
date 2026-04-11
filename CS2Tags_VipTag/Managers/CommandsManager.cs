@@ -22,7 +22,6 @@ public sealed class CommandManager(
 {
     public void InitializeCommands()
     {
-        // TODO: clear tag and not just wipe all? Perhaps a reset for each color too.
         plugin.AddCommand("css_settag", "Ability for VIP to change their Scoreboard and Chat tag", TagChange);
         plugin.AddCommand("css_tagmenu", "Ability for VIP to change their Scoreboard and Chat tag", TagMenu);
     }
@@ -146,7 +145,6 @@ public sealed class CommandManager(
                 $"<font color='{hex}'><b>{color}</b></font>",
                 (p, o) =>
                 {
-                    // TODO: check auth?
                     Task.Run(() => onColorSelected(color));
                 }
             );

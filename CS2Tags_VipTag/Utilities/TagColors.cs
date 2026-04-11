@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+﻿using System.Collections.Frozen;
 
 using CounterStrikeSharp.API.Modules.Utils;
 
@@ -6,56 +6,40 @@ namespace VipTags.Utilities;
 
 public static class TagColors
 {
-    public static readonly string[] Colors =
-    [
-        "TeamColor",
-        "White",
-        "DarkRed",
-        "Green",
-        "LightYellow",
-        "LightBlue",
-        "Olive",
-        "Lime",
-        "Red",
-        "LightPurple",
-        "Purple",
-        "Grey",
-        "Yellow",
-        "Gold",
-        "Silver",
-        "Blue",
-        "DarkBlue",
-        "BlueGrey",
-        "Magenta",
-        "LightRed",
-        "Orange",
-    ];
+    private static readonly FrozenDictionary<string, string> ColorMap = (new Dictionary<string, string>() {
+        { "White", "#FFFFFF" },
+        { "DarkRed", "#E24D1B" },
+        { "Green", "#8DF664" },
+        { "LightYellow", "#E8E386" },
+        { "LightBlue", "#7095D3" },
+        { "Olive", "#CDF9A0" },
+        { "Lime", "#BDF868" },
+        { "Red", "#E36246" },
+        { "LightPurple", "#AF87EA" },
+        { "Purple", "#BD50DF" },
+        { "Grey", "#C5C9CE" },
+        { "Yellow", "#EAE588" },
+        { "Gold", "#D7B150" },
+        { "Silver", "#B5C1D6" },
+        { "Blue", "#7095D3" },
+        { "DarkBlue", "#576AF6" },
+        { "BlueGrey", "#B5C1D6" },
+        { "Magenta", "#BD50DF" },
+        { "LightRed", "#D2644F" },
+        { "Orange", "#D8B350" },
+    }).ToFrozenDictionary();
 
-    private static readonly Dictionary<string, string> PredefinedColors = new()
-    {
-        { "BlueGrey", "#B1C4D9" },
-        { "Grey", "#C6CBD0" },
-        { "LightPurple", "#BB82F0" },
-        { "LightRed", "#EB4C4C" },
-    };
+    public static readonly string[] Colors = ColorMap.Keys.Prepend("TeamColor").ToArray();
 
     public static string ComputeColorHex(string name, CsTeam team)
     {
-        // TODO: find exact colors...
         if (name == "TeamColor")
         {
             name = GetTeamColorName(team);
         }
 
-        if (PredefinedColors.TryGetValue(name, out string? hex))
-        {
-            return hex;
-        }
-
-        Color color = Color.FromName(name);
-        if (!color.IsKnownColor) throw new ArgumentException($"{name} is not a known color",  nameof(name));
-
-        return $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+        return ColorMap.GetValueOrDefault(name) ??
+               throw new ArgumentException($"{name} is not a known color", nameof(name));
     }
 
     private static string GetTeamColorName(CsTeam team) => team switch
