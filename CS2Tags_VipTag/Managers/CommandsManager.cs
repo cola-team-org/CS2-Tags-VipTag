@@ -6,6 +6,7 @@ using CS2MenuManager.API.Enum;
 using CS2MenuManager.API.Menu;
 
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 
 using VipTags.Authorization;
 using VipTags.Models;
@@ -15,6 +16,7 @@ namespace VipTags.Managers;
 
 public sealed class CommandManager(
     VipTagsPlugin plugin,
+    ILogger<CommandManager> logger,
     AuthorizationComputer authorizationComputer,
     IStringLocalizer localizer,
     TagsManager tagsManager)
@@ -45,7 +47,7 @@ public sealed class CommandManager(
             return;
         }
 
-        Task.Run(async () =>
+        AsyncHelpers.RunWithErrorLogging(logger, async () =>
         {
             await tagsManager.UpdateTag(authorizationContext, arg);
             await player.SafeColoredPrintToChat($"{localizer["Prefix"]}{localizer["TagSet", arg]}");
@@ -88,7 +90,7 @@ public sealed class CommandManager(
 
         menu.AddItem($"{localizer["ResetCustomTag"]}", (_, _) =>
         {
-            Task.Run(async () =>
+            AsyncHelpers.RunWithErrorLogging(logger, async () =>
             {
                 await tagsManager.UpdateTag(authorizationContext, null);
                 await player.SafeColoredPrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["CustomTagReset"]}".ReplaceColorTags());
@@ -97,7 +99,7 @@ public sealed class CommandManager(
 
         menu.AddItem($"{localizer["ResetEverything"]}", (_, _) =>
         {
-            Task.Run(async () =>
+            AsyncHelpers.RunWithErrorLogging(logger, async () =>
             {
                 await tagsManager.DeleteSettings(authorizationContext);
                 await player.SafeColoredPrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["EverythingReset"]}".ReplaceColorTags());
@@ -118,7 +120,7 @@ public sealed class CommandManager(
 
         var menu = new WasdMenu(plugin.Localizer[$"{colorTypeName}Menu"], plugin) { PrevMenu = parentMenu };
 
-        var resetOption = menu.AddItem(plugin.Localizer["ResetColor"], (_, _) => Task.Run(() => SetColor(null)));
+        var resetOption = menu.AddItem(plugin.Localizer["ResetColor"], (_, _) => SetColor(null));
         resetOption.PostSelectAction = PostSelectAction.Nothing;
 
         foreach (var color in TagColors.Colors)
@@ -127,26 +129,30 @@ public sealed class CommandManager(
 
             var option = menu.AddItem(
                 $"<font color='{hex}'><b>{color}</b></font>",
-                (_, _) => Task.Run(() => SetColor(color)));
+                (_, _) => SetColor(color));
             option.PostSelectAction = PostSelectAction.Nothing;
         }
 
         menu.Display(player, 0);
 
-        async Task SetColor(string? color)
+        void SetColor(string? color)
         {
-            await tagsManager.UpdateColor(authorizationContext, colorType, color);
+            AsyncHelpers.RunWithErrorLogging(logger, async () =>
+            {
+                await tagsManager.UpdateColor(authorizationContext, colorType, color);
 
-            if (color is not null)
-            {
-                await player.SafeColoredPrintToChat(
-                    $"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer[$"New{colorTypeName}", color]}");
-            }
-            else
-            {
-                await player.SafeColoredPrintToChat(
-                    $"{plugin.Localizer["Prefix"]}{plugin.Localizer[$"Reset{colorTypeName}"]}");
-            }
+                if (color is not null)
+                {
+                    await player.SafeColoredPrintToChat(
+                        $"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer[$"New{colorTypeName}", color]}");
+                }
+                else
+                {
+                    await player.SafeColoredPrintToChat(
+                        $"{plugin.Localizer["Prefix"]}{plugin.Localizer[$"Reset{colorTypeName}"]}");
+                }
+            });
+
         }
     }
 }

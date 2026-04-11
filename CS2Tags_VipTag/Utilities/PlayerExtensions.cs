@@ -5,7 +5,7 @@ using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Translations;
 using CounterStrikeSharp.API.Modules.Utils;
 
-namespace VipTags;
+namespace VipTags.Utilities;
 
 internal static class PlayerExtensions
 {

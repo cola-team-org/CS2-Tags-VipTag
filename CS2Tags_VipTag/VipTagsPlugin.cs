@@ -3,6 +3,7 @@
 using Microsoft.Extensions.DependencyInjection;
 
 using VipTags.Managers;
+using VipTags.Utilities;
 
 namespace VipTags;
 
@@ -18,7 +19,7 @@ public sealed class VipTagsPlugin(IServiceProvider serviceProvider) : BasePlugin
         serviceProvider.GetRequiredService<EventManager>().InitializeEvents();
         serviceProvider.GetRequiredService<CommandManager>().InitializeCommands();
 
-        Task.Run(async () =>
+        AsyncHelpers.RunWithErrorLogging(Logger, async () =>
         {
             await serviceProvider.GetRequiredService<DatabaseManager>().InitializeConnection();
             await serviceProvider.GetRequiredService<TagsManager>().ReloadAllSettings();

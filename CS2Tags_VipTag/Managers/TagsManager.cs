@@ -8,6 +8,7 @@ using TagsApi;
 
 using VipTags.Authorization;
 using VipTags.Models;
+using VipTags.Utilities;
 
 using static TagsApi.Tags;
 
