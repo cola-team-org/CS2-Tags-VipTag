@@ -1,3 +1,4 @@
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Translations;
 using CounterStrikeSharp.API.Modules.Commands;
@@ -6,22 +7,17 @@ using CounterStrikeSharp.API.Modules.Utils;
 using CS2MenuManager.API.Menu;
 
 using Microsoft.Extensions.Localization;
-using Microsoft.Extensions.Logging;
 
 using VipTags.Authorization;
-using VipTags.Models;
 
 namespace VipTags.Managers;
 
 public sealed class CommandManager(
     VipTagsPlugin plugin,
     AuthorizationComputer authorizationComputer,
-    ILogger<CommandManager> logger,
-    DatabaseManager databaseManager,
     IStringLocalizer localizer,
     MenuManager menuManager,
-    TagsManager tagsManager,
-    PlayerModelCache playerModelCache)
+    TagsManager tagsManager)
 {
     public void InitializeCommands()
     {
@@ -50,33 +46,11 @@ public sealed class CommandManager(
             return;
         }
 
-        try
+        Task.Run(async () =>
         {
-            var model = playerModelCache.Get(authorizationContext.SteamId);
-
-            if (model is null)
-            {
-                model = playerModelCache.Set(authorizationContext.SteamId, new TagSettings
-                {
-                    SteamId = authorizationContext.SteamId,
-                    Tag = arg,
-                    TagColor = null,
-                    NameColor = null,
-                    ChatColor = null,
-                });
-            }
-            else
-            {
-                model.Tag = arg;
-            }
-
-            tagsManager.ApplyTags(player, model);
-            player.PrintToChat($"{localizer["Prefix"]}{localizer["TagSet", arg]}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogInformation(ex, "TagChange failed");
-        }
+            await tagsManager.UpdateTag(authorizationContext, arg);
+            await Server.NextFrameAsync(() => player.PrintToChat($"{localizer["Prefix"]}{localizer["TagSet", arg]}"));
+        });
 
     }
 
@@ -91,21 +65,17 @@ public sealed class CommandManager(
             return;
         }
 
-        var model = playerModelCache.Get(authorizationContext.SteamId);
+        // TODO: Remove SetupTag string
 
-        if (model is null)
-        {
-            player.PrintToChat($"{localizer["Prefix"]}{localizer["SetupTag"]}");
-            return;
-        }
-
-        WasdMenu menu = new(localizer["VipMenu"], plugin);
+        var menu = new WasdMenu(localizer["VipMenu"], plugin);
 
         menu.AddItem($"{localizer["ResetTag"]}", (player, _) => // TODO: add string
             {
-                playerModelCache.Clear(authorizationContext.SteamId);
-                player.PrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["TagReset"]}".ReplaceColorTags());
-                Task.Run(() => databaseManager.DeleteTags(authorizationContext.SteamId));
+                Task.Run(async () =>
+                {
+                    await tagsManager.DeleteSettings(authorizationContext);
+                    await player.SafePrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["TagReset"]}".ReplaceColorTags());
+                });
             },
             disableOption: authorizationContext.CanSetCustomTag
                 ? CS2MenuManager.API.Enum.DisableOption.None
@@ -114,11 +84,10 @@ public sealed class CommandManager(
             {
                 menuManager.CreateMenuWithColors(
                     player,
-                    plugin.Localizer["TagColorMenu"],
-                    (color, settings) =>
+                    plugin.Localizer["TagColorMenu"], async color =>
                     {
-                        settings.TagColor = color;
-                        player.PrintToChat(
+                        await tagsManager.UpdateTagColor(authorizationContext, color);
+                        await player.SafePrintToChat(
                             $"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewTagColor", color]}"
                                 .ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
                     },
@@ -131,11 +100,10 @@ public sealed class CommandManager(
             {
                 menuManager.CreateMenuWithColors(
                     player,
-                    plugin.Localizer["ChatColorMenu"],
-                    (color, settings) =>
+                    plugin.Localizer["ChatColorMenu"], async color =>
                     {
-                        settings.ChatColor = color;
-                        player.PrintToChat(
+                        await tagsManager.UpdateChatColor(authorizationContext, color);
+                        await player.SafePrintToChat(
                             $"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewChatColor", color]}"
                                 .ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
                     }, menu);
@@ -147,11 +115,10 @@ public sealed class CommandManager(
             {
                 menuManager.CreateMenuWithColors(
                     player,
-                    plugin.Localizer["NameColorMenu"],
-                    (color, settings) =>
+                    plugin.Localizer["NameColorMenu"], async color =>
                     {
-                        settings.NameColor = color;
-                        player.PrintToChat(
+                        await tagsManager.UpdateNameColor(authorizationContext, color);
+                        await player.SafePrintToChat(
                             $"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer["NewNameColor", color]}"
                                 .ReplaceColorTags().Replace("{TeamColor}", ChatColors.ForTeam(player.Team).ToString()));
                     },

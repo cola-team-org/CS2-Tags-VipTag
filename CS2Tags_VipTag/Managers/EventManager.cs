@@ -1,10 +1,8 @@
-using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 
 using Microsoft.Extensions.Logging;
 
 using VipTags.Authorization;
-using VipTags.Models;
 
 namespace VipTags.Managers;
 
@@ -24,42 +22,14 @@ public class EventManager(
 
     private HookResult OnPlayerConnect(EventPlayerConnectFull @event, GameEventInfo info)
     {
-        try
-        {
-            var player = @event.Userid;
-            if (player == null || player.IsBot || player.IsHLTV || player.AuthorizedSteamID == null) return HookResult.Continue;
+        var player = @event.Userid;
+        if (player == null || player.IsBot || player.IsHLTV || player.AuthorizedSteamID == null)
+            return HookResult.Continue;
 
-            var authorizationContext = authorizationComputer.ComputeAuthorizationContext(player);
+        var authorizationContext = authorizationComputer.ComputeAuthorizationContext(player);
 
-            if (!authorizationContext.CanSetAnything) return HookResult.Continue;
-            Task.Run(async () =>
-            {
-                try
-                {
-                    await OnClientAuthorizedAsync(authorizationContext.SteamId);
-
-                    //if (!_plugin.Players.ContainsKey(steamid64)) return;
-
-                    Server.NextFrame(() =>
-                    {
-                        var model = playerModelCache.Get(authorizationContext.SteamId);
-
-                        if (model is null) return;
-
-                        tagsManager.ApplyTags(player, model);
-                    });
-
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to fetch tags on connect");
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "OnPlayerConnectFull failed");
-        }
+        if (!authorizationContext.CanSetAnything) return HookResult.Continue;
+        Task.Run(() => tagsManager.ReloadSettings(authorizationContext));
         return HookResult.Continue;
     }
 
@@ -101,21 +71,5 @@ public class EventManager(
         }
 
         return HookResult.Continue;
-    }
-
-
-    private async Task OnClientAuthorizedAsync(ulong steamid)
-    {
-        var user = await databaseManager.FetchPlayerInfo(steamid);
-        if (user == null) return;
-
-        playerModelCache.Set(steamid, new TagSettings
-        {
-            SteamId = user.SteamId,
-            Tag = user.Tag,
-            TagColor = user.TagColor,
-            NameColor = user.NameColor,
-            ChatColor = user.ChatColor,
-        });
     }
 }
