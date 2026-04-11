@@ -10,5 +10,5 @@ public class AuthorizationContext
     public required bool CanSetChatColor { get; init; }
     public required bool CanSetNameColor { get; init; }
     public required bool CanSetTagColor { get; init; }
-    public bool CanSetAnything =>  CanSetChatColor || CanSetNameColor || CanSetTagColor || CanSetCustomTag;
+    public bool CanSetAnything => CanSetChatColor || CanSetNameColor || CanSetTagColor || CanSetCustomTag;
 }
