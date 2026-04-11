@@ -49,7 +49,7 @@ public sealed class CommandManager(
         Task.Run(async () =>
         {
             await tagsManager.UpdateTag(authorizationContext, arg);
-            await Server.NextFrameAsync(() => player.PrintToChat($"{localizer["Prefix"]}{localizer["TagSet", arg]}"));
+            await player.SafePrintToChat($"{localizer["Prefix"]}{localizer["TagSet", arg]}");
         });
 
     }

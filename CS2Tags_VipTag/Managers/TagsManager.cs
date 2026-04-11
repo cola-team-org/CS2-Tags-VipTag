@@ -63,7 +63,6 @@ public sealed class TagsManager(
     {
         playerModelCache.Clear(authorizationContext.SteamId);
         await databaseManager.DeleteTags(authorizationContext.SteamId);
-        await ResetSettings(authorizationContext.Player);
     }
 
     public async Task ReloadSettings(AuthorizationContext authorizationContext)
@@ -73,7 +72,6 @@ public sealed class TagsManager(
         if (settings is null)
         {
             playerModelCache.Clear(authorizationContext.SteamId);
-            await ResetSettings(authorizationContext.Player);
             return;
         }
 
@@ -180,14 +178,13 @@ public sealed class TagsManager(
     //         TagApi.SetAttribute(player, type, $"{{{color}}}");
     //     }
     // }
-
-    private async Task ResetSettings(CCSPlayerController player)
-    {
-        await Server.NextFrameAsync(() =>
-        {
-            TagApi.ResetAttribute(player, TagType.ScoreTag | TagType.ChatTag | TagType.NameColor | TagType.ChatColor);
-        });
-    }
+    // private async Task ResetSettings(CCSPlayerController player)
+    // {
+    //     await Server.NextFrameAsync(() =>
+    //     {
+    //         TagApi.ResetAttribute(player, TagType.ScoreTag | TagType.ChatTag | TagType.NameColor | TagType.ChatColor);
+    //     });
+    // }
 
     private async Task UpdateAndApply(AuthorizationContext authorizationContext, Action<TagSettings> action)
     {
