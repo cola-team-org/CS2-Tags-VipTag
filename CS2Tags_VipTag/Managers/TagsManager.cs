@@ -33,6 +33,16 @@ public sealed class TagsManager(
         }
     }
 
+    public bool GetTagVisibilityOnScoreboard(AuthorizationContext authorizationContext) =>
+        playerModelCache.Get(authorizationContext.SteamId)?.ScoreVisibility ?? true;
+
+    public async Task UpdateTagVisibilityOnScoreboard(AuthorizationContext authorizationContext, bool visibility)
+    {
+        if (!authorizationContext.CanSetCustomTag)
+            throw new UnauthorizedAccessException("Player does not have permission to update tag visibility on scoreboard");
+        await UpdateAndApply(authorizationContext, settings => settings.ScoreVisibility = visibility);
+    }
+
     public async Task UpdateTag(AuthorizationContext authorizationContext, string? tag)
     {
         if (!authorizationContext.CanSetCustomTag)
@@ -110,7 +120,7 @@ public sealed class TagsManager(
 
         var settings = playerModelCache.Get(steamId.Value);
 
-        if (settings?.Tag is null) return;
+        if (settings?.Tag is null || !settings.ScoreVisibility) return;
 
         if (tag.ScoreTag == settings.Tag)
         {
@@ -199,6 +209,7 @@ public sealed class TagsManager(
             TagColor = authorizationContext.CanSetTagColor ? settings.TagColor : null,
             NameColor = authorizationContext.CanSetNameColor ? settings.NameColor : null,
             ChatColor = authorizationContext.CanSetChatColor ? settings.ChatColor : null,
+            ScoreVisibility = settings.ScoreVisibility,
         };
 
         if (!settings.Equals(newSettings))
@@ -219,7 +230,7 @@ public sealed class TagsManager(
 
         if (plugin.Config.CustomTagOnScoreboard)
         {
-            await SetScoreTag(authorizationContext.Player, settings.Tag);
+            await SetScoreTag(authorizationContext.Player, settings.ScoreVisibility ? settings.Tag : null);
         }
     }
 }

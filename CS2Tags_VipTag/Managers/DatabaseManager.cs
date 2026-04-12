@@ -33,6 +33,7 @@ public sealed class DatabaseManager(
                                  ChatColor VARCHAR(50)
                                                CHARACTER SET utf8mb4
                                                COLLATE utf8mb4_unicode_ci,
+                                 ScoreVisibility TINYINT(1),
                                  PRIMARY KEY (SteamID)
                              )
                                  ENGINE = InnoDB
@@ -104,9 +105,9 @@ public sealed class DatabaseManager(
     {
         await connection.ExecuteAsync(
             """
-            INSERT INTO `VipTags_Players` (`SteamID`, `Tag`, `TagColor`, `NameColor`, `ChatColor`)
-            VALUES (@SteamId, @Tag, @TagColor, @NameColor, @ChatColor)
-            ON DUPLICATE KEY UPDATE `Tag` = @Tag, `TagColor` = @TagColor, `NameColor` = @NameColor, `ChatColor` = @ChatColor
+            INSERT INTO `VipTags_Players` (`SteamID`, `Tag`, `TagColor`, `NameColor`, `ChatColor`, `ScoreVisibility`)
+            VALUES (@SteamId, @Tag, @TagColor, @NameColor, @ChatColor, @ScoreVisibility)
+            ON DUPLICATE KEY UPDATE `Tag` = @Tag, `TagColor` = @TagColor, `NameColor` = @NameColor, `ChatColor` = @ChatColor,  `ScoreVisibility` = @ScoreVisibility
             """,
             settings);
     }

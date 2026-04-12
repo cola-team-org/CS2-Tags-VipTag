@@ -7,6 +7,7 @@ public class TagSettings
     public string? TagColor { get; set; }
     public string? NameColor { get; set; }
     public string? ChatColor { get; set; }
+    public bool ScoreVisibility { get; set; } = true;
 
     public void UpdateColor(ColorType colorType, string? color)
     {
@@ -28,12 +29,12 @@ public class TagSettings
 
     public bool Equals(TagSettings other)
     {
-        return SteamId == other.SteamId && Tag == other.Tag && TagColor == other.TagColor && NameColor == other.NameColor && ChatColor == other.ChatColor;
+        return SteamId == other.SteamId && Tag == other.Tag && TagColor == other.TagColor && NameColor == other.NameColor && ChatColor == other.ChatColor &&  ScoreVisibility == other.ScoreVisibility;
     }
 
     public override string ToString()
     {
         return
-            $"{nameof(SteamId)}: {SteamId}, {nameof(Tag)}: {Tag}, {nameof(TagColor)}: {TagColor}, {nameof(NameColor)}: {NameColor}, {nameof(ChatColor)}: {ChatColor}";
+            $"{nameof(SteamId)}: {SteamId}, {nameof(Tag)}: {Tag}, {nameof(TagColor)}: {TagColor}, {nameof(NameColor)}: {NameColor}, {nameof(ChatColor)}: {ChatColor}, {nameof(ScoreVisibility)}: {ScoreVisibility}";
     }
 }
