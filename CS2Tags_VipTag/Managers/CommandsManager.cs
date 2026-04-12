@@ -89,6 +89,38 @@ public sealed class CommandManager(
 
         if (authorizationContext.CanSetCustomTag)
         {
+            if (plugin.Config.CustomTagOnScoreboard)
+            {
+                var currentVisibility = tagsManager.GetTagVisibilityOnScoreboard(authorizationContext);
+                string GetScoreboardVisibilityOptionName() =>
+                    localizer[currentVisibility ? "DisableScoreboardVisibility" : "EnableScoreboardVisibility"];
+
+                menu.AddItem(
+                    GetScoreboardVisibilityOptionName(),
+                    (_, o) =>
+                    {
+                        currentVisibility = !currentVisibility;
+                        o.Text = GetScoreboardVisibilityOptionName();
+                        o.PostSelectAction = PostSelectAction.Nothing;
+
+                        AsyncHelpers.RunWithErrorLogging(logger, async () =>
+                        {
+                            await tagsManager.UpdateTagVisibilityOnScoreboard(authorizationContext, currentVisibility);
+
+                            if (currentVisibility)
+                            {
+                                await authorizationContext.Player.SafeColoredPrintToChat(
+                                    $"{plugin.Localizer["Prefix"]}{plugin.Localizer["ScoreboardVisibilityEnabled"]}");
+                            }
+                            else
+                            {
+                                await authorizationContext.Player.SafeColoredPrintToChat(
+                                    $"{plugin.Localizer["Prefix"]}{plugin.Localizer["ScoreboardVisibilityDisabled"]}");
+                            }
+                        });
+                    });
+            }
+
             menu.AddItem($"{localizer["ResetCustomTag"]}", (_, o) =>
             {
                 o.PostSelectAction = PostSelectAction.Nothing;
