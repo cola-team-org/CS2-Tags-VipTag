@@ -1,5 +1,4 @@
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Core.Translations;
 using CounterStrikeSharp.API.Modules.Commands;
 
 using CS2MenuManager.API.Enum;
@@ -88,14 +87,18 @@ public sealed class CommandManager(
             AddColorMenuOption(menu, authorizationContext, colorType);
         }
 
-        menu.AddItem($"{localizer["ResetCustomTag"]}", (_, _) =>
+        if (authorizationContext.CanSetCustomTag)
         {
-            AsyncHelpers.RunWithErrorLogging(logger, async () =>
+            menu.AddItem($"{localizer["ResetCustomTag"]}", (_, o) =>
             {
-                await tagsManager.UpdateTag(authorizationContext, null);
-                await player.SafeColoredPrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["CustomTagReset"]}".ReplaceColorTags());
+                o.PostSelectAction = PostSelectAction.Nothing;
+                AsyncHelpers.RunWithErrorLogging(logger, async () =>
+                {
+                    await tagsManager.UpdateTag(authorizationContext, null);
+                    await player.SafeColoredPrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["CustomTagReset"]}");
+                });
             });
-        });
+        }
 
         menu.AddItem($"{localizer["ResetEverything"]}", (_, o) =>
         {
