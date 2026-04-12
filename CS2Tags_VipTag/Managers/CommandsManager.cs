@@ -55,7 +55,7 @@ public sealed class CommandManager(
     }
 
     private void AddColorMenuOption(
-        WasdMenu menu,
+        PlayerMenu menu,
         AuthorizationContext authorizationContext,
         ColorType colorType)
     {
@@ -79,7 +79,7 @@ public sealed class CommandManager(
             return;
         }
 
-        var menu = new WasdMenu(localizer["TagsMenu"], plugin);
+        var menu = new PlayerMenu(localizer["TagsMenu"], plugin);
 
         foreach (var colorType in Enum.GetValues<ColorType>())
         {
@@ -97,12 +97,13 @@ public sealed class CommandManager(
             });
         });
 
-        menu.AddItem($"{localizer["ResetEverything"]}", (_, _) =>
+        menu.AddItem($"{localizer["ResetEverything"]}", (_, o) =>
         {
+            o.PostSelectAction = PostSelectAction.Nothing;
             AsyncHelpers.RunWithErrorLogging(logger, async () =>
             {
                 await tagsManager.DeleteSettings(authorizationContext);
-                await player.SafeColoredPrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["EverythingReset"]}".ReplaceColorTags());
+                await player.SafeColoredPrintToChat($"{plugin.Localizer["Prefix"]}{plugin.Localizer["EverythingReset"]}");
             });
         });
 
@@ -112,7 +113,7 @@ public sealed class CommandManager(
     private void DisplayColorSelector(
         AuthorizationContext authorizationContext,
         ColorType colorType,
-        WasdMenu? parentMenu)
+        PlayerMenu? parentMenu)
     {
         var player = authorizationContext.Player;
         var colorTypeName = Enum.GetName(colorType) ??
