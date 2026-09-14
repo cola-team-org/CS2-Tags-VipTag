@@ -161,6 +161,8 @@ public sealed class CommandManager(
 
         foreach (var color in TagColors.Colors)
         {
+            if (colorType == ColorType.ChatColor && TagColors.IsGreen(color)) continue;
+
             var hex = TagColors.ComputeColorHex(color, player.Team);
 
             var option = menu.AddItem(
@@ -180,7 +182,7 @@ public sealed class CommandManager(
                 if (color is not null)
                 {
                     await player.SafeColoredPrintToChat(
-                        $"{plugin.Localizer["Prefix"]}{{{color}}}{plugin.Localizer[$"New{colorTypeName}", color]}");
+                        $"{plugin.Localizer["Prefix"]}{TagColors.WrapChatColor(color)}{plugin.Localizer[$"New{colorTypeName}", color]}");
                 }
                 else
                 {

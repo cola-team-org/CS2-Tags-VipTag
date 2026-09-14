@@ -10,7 +10,7 @@ namespace VipTags;
 public sealed class VipTagsPlugin(IServiceProvider serviceProvider) : BasePlugin, IPluginConfig<VipTagsConfig>
 {
     public override string ModuleName => "CS2Tags_VipTag";
-    public override string ModuleVersion => "0.5.0-beta.2";
+    public override string ModuleVersion => "0.5.0-beta.3";
     public override string ModuleAuthor => "Letaryat & Nicklas Vedsted";
     public override string ModuleDescription => "Tag change for vip players";
     public required VipTagsConfig Config { get; set; }

@@ -1,10 +1,5 @@
 # CS2Tags_VipTag
 This plugin allows to someone with specific permission to set up their own scoreboard tag, chat tag and colors. This plugin uses MySQL database to store information about tags.<br/>
-[![poor-developer discord server](https://i.imgur.com/8L6KsUZ.png)](https://discord.gg/mEmdyqM3Um)
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/H2H8TK0L9)
-
-## [📌] Version for K4-Arenas:
-- [Arena-VipTagChange](https://github.com/Letaryat/CS2-Arena-VipTagChange) // Not updated for 1.4 version.
 
 ## [📌] Dependiencies:
 - [CounterStrikeSharp (tested on v294)](https://github.com/roflmuffin/CounterStrikeSharp)  
@@ -50,6 +45,7 @@ This plugin allows to someone with specific permission to set up their own score
 - [CS2-Ranks](https://github.com/partiusfabaa/cs2-ranks) how to manage things such as keeping player information from database,
 - CounterStrikeSharp discord,
 - Probably some other open-source projects that I forgot to mention,
+- This its forked from Letaryat
 <br><img src="https://i.imgur.com/TQP4lYn.gif" height="200px">
 
 ### [🚨] Plugin might be poorly written and have some issues. I have no idea what I am doing. Even so, when tested it worked as intended.

@@ -142,13 +142,13 @@ public sealed class TagsManager(
 
         if (settings is null) return HookResult.Continue;
 
-        messageProcess.Tag.ChatColor = WrapColor(settings.ChatColor) ?? messageProcess.Tag.ChatColor;
-        messageProcess.Tag.NameColor = WrapColor(settings.NameColor) ?? messageProcess.Tag.NameColor;
+        messageProcess.Tag.ChatColor = TagColors.WrapChatColor(settings.ChatColor) ?? messageProcess.Tag.ChatColor;
+        messageProcess.Tag.NameColor = TagColors.WrapChatColor(settings.NameColor) ?? messageProcess.Tag.NameColor;
         messageProcess.Tag.ChatTag = AddSpaceToEnd(settings.Tag) ?? messageProcess.Tag.ChatTag;
 
         if (settings.TagColor is not null && messageProcess.Tag.ChatTag is not null)
         {
-            var tagWithColor = $"{{{settings.TagColor}}}{RemoveColorTags(messageProcess.Tag.ChatTag)}{{TeamColor}}";
+            var tagWithColor = $"{TagColors.WrapChatColor(settings.TagColor)}{RemoveColorTags(messageProcess.Tag.ChatTag)}{{TeamColor}}";
             messageProcess.Tag.ChatTag = tagWithColor;
         }
 
@@ -171,8 +171,6 @@ public sealed class TagsManager(
 
         return modifiedValue.Equals(message) ? message : modifiedValue;
     }
-
-    private static string? WrapColor(string? color) => color is null ? null : $"{{{color}}}";
 
     private static string? AddSpaceToEnd(string? text) => text is null ? null : $"{text} ";
 

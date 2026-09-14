@@ -11,7 +11,7 @@ public sealed class TagColorTests
     {
         using (Assert.Multiple())
         {
-            await Assert.That(TagColors.Colors).Count().IsEqualTo(21);
+            await Assert.That(TagColors.Colors).Count().IsEqualTo(20);
             foreach (var colorName in TagColors.Colors)
             {
                 var hex = TagColors.ComputeColorHex(colorName, CsTeam.Terrorist);

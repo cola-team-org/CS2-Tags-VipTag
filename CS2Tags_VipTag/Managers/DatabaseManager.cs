@@ -33,14 +33,38 @@ public sealed class DatabaseManager(
                                  ChatColor VARCHAR(50)
                                                CHARACTER SET utf8mb4
                                                COLLATE utf8mb4_unicode_ci,
-                                 ScoreVisibility TINYINT(1),
+                                 ScoreVisibility TINYINT(1) NOT NULL DEFAULT 1,
                                  PRIMARY KEY (SteamID)
                              )
                                  ENGINE = InnoDB
                                  DEFAULT CHARSET = utf8mb4
                                  COLLATE = utf8mb4_unicode_ci;
                              """;
-        await connection.QueryFirstOrDefaultAsync(createTable);
+        await connection.ExecuteAsync(createTable);
+
+        // CREATE TABLE IF NOT EXISTS does not upgrade existing tables.
+        var hasScoreVisibility = await connection.ExecuteScalarAsync<int>(
+            """
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'VipTags_Players'
+              AND COLUMN_NAME = 'ScoreVisibility';
+            """);
+
+        if (hasScoreVisibility == 0)
+        {
+            try
+            {
+                await connection.ExecuteAsync(
+                    "ALTER TABLE `VipTags_Players` ADD COLUMN `ScoreVisibility` TINYINT(1) NOT NULL DEFAULT 1;");
+                logger.LogInformation("Added missing ScoreVisibility column to VipTags_Players");
+            }
+            catch (MySqlException ex) when (ex.Number == 1060)
+            {
+                // Another server sharing this database added the column first.
+            }
+        }
+
         logger.LogInformation("Ensured database has been setup");
     }
 

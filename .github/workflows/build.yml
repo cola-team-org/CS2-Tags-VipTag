@@ -1,0 +1,84 @@
+name: Build & Publish CS2Tags_VipTag
+
+on:
+  push:
+    branches:
+      - main
+      - nick-changes
+    paths-ignore:
+      - '**/README.md'
+      - '**/CHANGELOG.md'
+      - '**/.gitignore'
+      - '**/LICENSE'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_NUMBER: ${{ github.run_number }}
+      PROJECT: CS2Tags_VipTag/CS2Tags_VipTag.csproj
+      PLUGIN_DIR: BuildOutput/addons/counterstrikesharp/plugins/CS2Tags_VipTag
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore "$PROJECT"
+
+      - name: Build
+        run: >-
+          dotnet build "$PROJECT" -c Release --no-restore
+          -p:CopyLocalLockFileAssemblies=true
+          -o "$PLUGIN_DIR"
+
+      - name: Package plugin
+        working-directory: BuildOutput
+        run: |
+          test -f addons/counterstrikesharp/plugins/CS2Tags_VipTag/CS2Tags_VipTag.dll
+          test -f addons/counterstrikesharp/plugins/CS2Tags_VipTag/lang/en.json
+          zip -r CS2Tags_VipTag.zip addons
+
+      - name: Prepare release notes
+        shell: bash
+        run: |
+          python3 - <<'PYTHON'
+          import os
+          import subprocess
+          from pathlib import Path
+
+          build = os.environ["BUILD_NUMBER"]
+          message = subprocess.check_output(
+              ["git", "log", "-1", "--format=%B"], text=True
+          ).strip()
+          notes = (
+              f"## Release Notes for Build {build}\n\n"
+              f"{message}\n\n"
+              "### Installation\n\n"
+              "Extract CS2Tags_VipTag.zip into game/csgo/.\n"
+              "Requires CounterStrikeSharp with .NET 10, CS2-Tags and CS2MenuManager.\n"
+          )
+          Path("release-notes.md").write_text(notes, encoding="utf-8")
+          PYTHON
+
+      - name: Publish release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}-build-${{ env.BUILD_NUMBER }}
+          name: ${{ github.ref_name }} - Build ${{ env.BUILD_NUMBER }}
+          commit: ${{ github.sha }}
+          bodyFile: release-notes.md
+          artifacts: BuildOutput/CS2Tags_VipTag.zip
+          artifactErrorsFailBuild: true
+          generateReleaseNotes: false
+          allowUpdates: true
+          replacesArtifacts: true
+          token: ${{ secrets.GITHUB_TOKEN }}

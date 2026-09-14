@@ -29,7 +29,16 @@ public static class TagColors
         { "Orange", "#D8B350" },
     }).ToFrozenDictionary();
 
-    public static readonly string[] Colors = ColorMap.Keys.Prepend("TeamColor").ToArray();
+    // Keep the internal LightPurple preview for spectator TeamColor only.
+    public static readonly string[] Colors = ColorMap.Keys
+        .Where(name => name != "LightPurple")
+        .Prepend("TeamColor")
+        .ToArray();
+
+    public static string? WrapChatColor(string? name) => name is null ? null : $"{{{name}}}";
+
+    public static bool IsGreen(string? name) =>
+        string.Equals(name, "Green", StringComparison.OrdinalIgnoreCase);
 
     public static string ComputeColorHex(string name, CsTeam team)
     {
