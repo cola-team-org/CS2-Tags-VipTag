@@ -13,6 +13,7 @@ This plugin allows to someone with specific permission to set up their own score
 ## [📋] Functions:
 - Changing scoreboard and chat tag,
 - Changing color of tag, chat text color, name color,
+- Rainbow tag color (random color per letter, new order on every message) for players with the `!settag` permission,
 - Resetting tags & colors,
 - Storing all data in MySQL database,
 
@@ -48,4 +49,4 @@ This plugin allows to someone with specific permission to set up their own score
 - This its forked from Letaryat
 <br><img src="https://i.imgur.com/TQP4lYn.gif" height="200px">
 
-### [🚨] Plugin might be poorly written and have some issues. I have no idea what I am doing. Even so, when tested it worked as intended.
+### [🚨] Plugin might be poorly written and have some issues. I have no idea what I am doing. Even so, when tested it worked as intended.

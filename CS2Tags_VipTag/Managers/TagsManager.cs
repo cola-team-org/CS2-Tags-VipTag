@@ -52,7 +52,7 @@ public sealed class TagsManager(
 
     public async Task UpdateColor(AuthorizationContext authorizationContext, ColorType colorType, string? color)
     {
-        if (!authorizationContext.CanUpdate(colorType))
+        if (!authorizationContext.CanSetColor(colorType, color))
             throw new UnauthorizedAccessException("Player does not have permission to update tag color");
 
         await UpdateAndApply(authorizationContext, settings => settings.UpdateColor(colorType, color));
@@ -148,8 +148,14 @@ public sealed class TagsManager(
 
         if (settings.TagColor is not null && messageProcess.Tag.ChatTag is not null)
         {
-            var tagWithColor = $"{TagColors.WrapChatColor(settings.TagColor)}{RemoveColorTags(messageProcess.Tag.ChatTag)}{{TeamColor}}";
-            messageProcess.Tag.ChatTag = tagWithColor;
+            var plainTag = RemoveColorTags(messageProcess.Tag.ChatTag);
+
+            // Rainbow: new random color per letter on every message.
+            var coloredTag = TagColors.IsRainbow(settings.TagColor)
+                ? TagColors.Rainbowify(plainTag)
+                : $"{TagColors.WrapChatColor(settings.TagColor)}{plainTag}";
+
+            messageProcess.Tag.ChatTag = $"{coloredTag}{{TeamColor}}";
         }
 
         return HookResult.Continue;
@@ -204,7 +210,7 @@ public sealed class TagsManager(
         {
             SteamId = settings.SteamId,
             Tag = authorizationContext.CanSetCustomTag ? settings.Tag : null,
-            TagColor = authorizationContext.CanSetTagColor ? settings.TagColor : null,
+            TagColor = authorizationContext.CanSetColor(ColorType.TagColor, settings.TagColor) ? settings.TagColor : null,
             NameColor = authorizationContext.CanSetNameColor ? settings.NameColor : null,
             ChatColor = authorizationContext.CanSetChatColor ? settings.ChatColor : null,
             ScoreVisibility = settings.ScoreVisibility,
@@ -231,4 +237,4 @@ public sealed class TagsManager(
             await SetScoreTag(authorizationContext.Player, settings.ScoreVisibility ? settings.Tag : null);
         }
     }
-}
+}

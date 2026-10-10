@@ -82,7 +82,7 @@ public sealed class CommandManager(
 
         foreach (var colorType in Enum.GetValues<ColorType>())
         {
-            if (!authorizationContext.CanUpdate(colorType)) continue;
+            if (!authorizationContext.CanOpenColorMenu(colorType)) continue;
 
             AddColorMenuOption(menu, authorizationContext, colorType);
         }
@@ -159,8 +159,18 @@ public sealed class CommandManager(
         var resetOption = menu.AddItem(plugin.Localizer["ResetColor"], (_, _) => SetColor(null));
         resetOption.PostSelectAction = PostSelectAction.Nothing;
 
+        // Rainbow tag: only for players with the !settag permission (VIP cOLa).
+        if (colorType == ColorType.TagColor && authorizationContext.CanSetRainbowTag)
+        {
+            var rainbowOption = menu.AddItem(
+                $"<b>{TagColors.RainbowifyHtml(TagColors.Rainbow)}</b>",
+                (_, _) => SetColor(TagColors.Rainbow));
+            rainbowOption.PostSelectAction = PostSelectAction.Nothing;
+        }
+
         foreach (var color in TagColors.Colors)
         {
+            if (!authorizationContext.CanUpdate(colorType)) break;
             if (colorType == ColorType.ChatColor && TagColors.IsGreen(color)) continue;
 
             var hex = TagColors.ComputeColorHex(color, player.Team);
@@ -179,7 +189,12 @@ public sealed class CommandManager(
             {
                 await tagsManager.UpdateColor(authorizationContext, colorType, color);
 
-                if (color is not null)
+                if (TagColors.IsRainbow(color))
+                {
+                    await player.SafeColoredPrintToChat(
+                        $"{plugin.Localizer["Prefix"]}{plugin.Localizer[$"New{colorTypeName}", TagColors.Rainbowify(TagColors.Rainbow)]}");
+                }
+                else if (color is not null)
                 {
                     await player.SafeColoredPrintToChat(
                         $"{plugin.Localizer["Prefix"]}{TagColors.WrapChatColor(color)}{plugin.Localizer[$"New{colorTypeName}", color]}");
@@ -193,4 +208,4 @@ public sealed class CommandManager(
 
         }
     }
-}
+}
